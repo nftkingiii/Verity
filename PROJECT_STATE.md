@@ -15,16 +15,16 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - The public site shows Track 1 and Track 2 opening 2026-08-17 at 12:00 UTC; early registrants receive task specifications and private Discord support before then.
 - Public intents include `ONCHAIN_TX_LOOKUP` (Tier A) and `WALLET_BALANCE_CHECK`.
 - Miner YAML requires `version`, `kind`, `id`, `slug`, `name`, and `base_url`; `semantics.supported_intents` is case-sensitive and must include `ONCHAIN_TX_LOOKUP` exactly.
-- The integration dashboard sandbox-tests endpoints, pins YAML, and submits the Base Sepolia registration. A scoring module is a <=32 MB stateless WASM binary exporting `alloc`, `dealloc`, and `rank_answer`.
+- The integration dashboard sandbox-tests endpoints, pins YAML, and submits the Base Sepolia registration. Its current WASM intake requires a <=32 MB stateless binary exporting `memory`, `alloc`, `dealloc`, `rank_answer`, and `breakdown_answer`.
 - Public judging emphasizes Miner performance, applications, requests, X updates, and engagement; evaluator judging emphasizes automated script evaluation, ranking accuracy, and resistance to gaming.
 
 ## Proof matrix
 
 | Requirement | Planned implementation | Evidence | Status |
 | --- | --- | --- | --- |
-| Telegraph Miner | GET `/v1/lookup?chain=&tx_hash=` behind the public YAML mapping | 3 passing Node endpoint tests; registered miner ID and live requests | Implemented locally; registration pending |
+| Telegraph Miner | GET `/v1/lookup?chain=&tx_hash=` behind the public YAML mapping | Base Sepolia transaction `0x78c57b20b67c489bcf4d64b495d8c62939dc4daca67ce5dc77a4631be6db4d85`; IPFS YAML `QmTKzFcBYYuMEGvMPjv5trVqpHiaiKiuWw5HL5EtqUgyMq` | Registered; pending epoch activation |
 | Correct transaction evidence | Multi-RPC lookup with canonical receipt, block, and chain metadata | Unit fixtures plus independent RPC read-back | Planned |
-| Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | 3 passing Rust tests; verified `alloc`, `dealloc`, `rank_answer` WASM exports; dashboard acceptance | Built locally; registration pending |
+| Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | 3 passing Rust tests; verify `memory`, `alloc`, `dealloc`, `rank_answer`, and `breakdown_answer` exports before upload | Updated; awaiting rebuild and dashboard registration |
 | Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |

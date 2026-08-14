@@ -2,7 +2,7 @@
 
 Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner and paired WebAssembly scoring module for Telegraph.
 
-**Live Miner:** https://verity-production-fcf5.up.railway.app/health  
+**Live Miner:** https://verity-production-fcf5.up.railway.app/health
 **Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.0/verity_scorer.wasm
 
 It accepts an EVM chain plus transaction hash, fetches the transaction and receipt from a fixed allowlist of RPC providers, and returns a compact canonical payload:

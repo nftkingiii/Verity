@@ -21,7 +21,9 @@ test("health endpoint identifies the correct canonical intent", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
-    assert.equal((await response.json()).intent, "ONCHAIN_TX_LOOKUP");
+    const body = await response.json();
+    assert.equal(body.intent, "ONCHAIN_TX_LOOKUP");
+    assert.equal(body.revision, "unknown");
   });
 });
 

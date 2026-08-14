@@ -4,6 +4,7 @@ const PORT = Number.parseInt(process.env.PORT ?? "8080", 10);
 const MAX_URL_LENGTH = 4_096;
 const MAX_TX_HASH_LENGTH = 66;
 const RPC_TIMEOUT_MS = 8_000;
+const REVISION = process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "unknown";
 
 const CHAINS = {
   ethereum: {
@@ -159,7 +160,12 @@ export function createServer() {
 
     const url = new URL(request.url, `http://${request.headers.host ?? "localhost"}`);
     if (url.pathname === "/health") {
-      return json(response, 200, { status: "ok", service: "verity", intent: "ONCHAIN_TX_LOOKUP" });
+      return json(response, 200, {
+        status: "ok",
+        service: "verity",
+        intent: "ONCHAIN_TX_LOOKUP",
+        revision: REVISION,
+      });
     }
     if (url.pathname !== "/v1/lookup") return json(response, 404, { error: "NOT_FOUND" });
 

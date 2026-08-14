@@ -61,11 +61,18 @@ fn is_valid_payload(value: &str) -> bool {
 }
 
 fn score(ground_truth: &str, miner_answer: &str) -> f32 {
-    if miner_answer.trim().is_empty() || !is_valid_payload(ground_truth) || !is_valid_payload(miner_answer) {
+    if ground_truth.trim().is_empty() || miner_answer.trim().is_empty() {
         return 0.0;
     }
     if ground_truth == miner_answer {
         return 1.0;
+    }
+
+    // Telegraph's structural admission test uses generic fixtures, not the
+    // miner's canonical transaction payload. Those must still be safe to
+    // score: exact equality wins, while unrelated free-form values score zero.
+    if !is_valid_payload(ground_truth) || !is_valid_payload(miner_answer) {
+        return 0.0;
     }
 
     // The transaction hash and final status carry most of the verdict. All other
@@ -128,6 +135,12 @@ mod tests {
     #[test]
     fn exact_canonical_answer_scores_perfectly() {
         assert_eq!(score(TRUTH, TRUTH), 1.0);
+    }
+
+    #[test]
+    fn generic_structural_self_match_scores_perfectly() {
+        assert_eq!(score("structural fixture", "structural fixture"), 1.0);
+        assert_eq!(score("structural fixture", "unrelated fixture"), 0.0);
     }
 
     #[test]

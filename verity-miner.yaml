@@ -5,7 +5,7 @@ slug: verity-onchain-lookup
 protocol: generic
 name: Verity On-Chain Transaction Lookup
 description: Deterministic EVM transaction lookups with a compact canonical payload for ground-truth evaluation.
-base_url: https://REPLACE_WITH_PUBLIC_MINER_URL
+base_url: https://verity-production-fcf5.up.railway.app
 
 rate_limit_per_sec: 8
 cache_ttl_sec: 0
@@ -66,4 +66,4 @@ limitations:
     operator: eq
 
 docs:
-  repository: https://github.com/REPLACE_WITH_OWNER/verity
+  repository: https://github.com/nftkingiii/Verity

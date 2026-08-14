@@ -2,6 +2,9 @@
 
 Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner and paired WebAssembly scoring module for Telegraph.
 
+**Live Miner:** https://verity-production-fcf5.up.railway.app/health  
+**Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.0/verity_scorer.wasm
+
 It accepts an EVM chain plus transaction hash, fetches the transaction and receipt from a fixed allowlist of RPC providers, and returns a compact canonical payload:
 
 ```text
@@ -30,11 +33,9 @@ supported_intents:
   - ONCHAIN_TX_LOOKUP
 ```
 
-Before dashboard registration, replace:
+Before dashboard registration, confirm:
 
-- `base_url` with the public HTTPS deployment URL;
 - `id: 9001` if the dashboard reports it as unavailable;
-- the placeholder repository URL.
 
 Upload exactly the bytes you hash. The dashboard sandbox-tests the endpoint, pins the YAML, and registers the Miner. Do not put a private key, provider secret, or raw API key in the YAML.
 
@@ -50,6 +51,8 @@ cargo build --release --target wasm32-unknown-unknown
 ```
 
 Register the resulting `scorer/target/wasm32-unknown-unknown/release/verity_scorer.wasm` through the integration dashboard after hosting it at a durable public URL.
+
+The verified v0.1.0 scorer binary is already available from the GitHub Release linked above.
 
 ## Status
 

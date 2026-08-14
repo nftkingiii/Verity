@@ -25,17 +25,15 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Telegraph Miner | GET `/v1/lookup?chain=&tx_hash=` behind the public YAML mapping | 3 passing Node endpoint tests; registered miner ID and live requests | Implemented locally; registration pending |
 | Correct transaction evidence | Multi-RPC lookup with canonical receipt, block, and chain metadata | Unit fixtures plus independent RPC read-back | Planned |
 | Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | 3 passing Rust tests; verified `alloc`, `dealloc`, `rank_answer` WASM exports; dashboard acceptance | Built locally; registration pending |
-| Production availability | Health, latency, rate-limit, and error-safe service behavior | Public health URL and logs | Planned |
+| Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |
 
 ## Immediate next actions
 
-1. Run local Node and Rust/WASM verification.
-2. Deploy the Miner with dedicated RPC URLs and preserve the deployment revision/health evidence.
-3. Replace YAML placeholders and use the integration dashboard sandbox test.
-4. Recheck `ONCHAIN_TX_LOOKUP` from the live canonical set immediately before registration.
-5. Register the Miner and WASM scorer, then preserve transaction hashes, miner ID, and endpoint read-back.
+1. Use the integration dashboard sandbox test with the published YAML and scorer release asset.
+2. Recheck `ONCHAIN_TX_LOOKUP` from the live canonical set immediately before registration.
+3. Register the Miner and WASM scorer, then preserve transaction hashes, miner ID, and endpoint read-back.
 
 ## Local verification — 2026-08-14
 
@@ -43,6 +41,8 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - `cargo test --offline` passed: exact payload, blank/malformed answers, and copied-hash anti-gaming cases (3/3).
 - A release WASM module was compiled with the installed `wasm32v1-none` target (7,546 bytes) and inspected with Node's WebAssembly runtime. It exported `memory`, `alloc`, `dealloc`, and `rank_answer`.
 - The documented `wasm32-unknown-unknown` target was not installed; `rustup target add wasm32-unknown-unknown` did not complete before the command timeout. The source is target-gated for `wasm32`, but final dashboard upload should use the documented target or first confirm acceptance of the verified compatible artifact.
+- Railway health: https://verity-production-fcf5.up.railway.app/health returned HTTP 200 with deployed revision `29b4b5d35e714e95d9ec58e0fe972d1c53ef3983`; an unsupported-chain request returned HTTP 400 and the expected security headers.
+- Scorer release: https://github.com/nftkingiii/Verity/releases/tag/v0.1.0 (the uploaded binary is 7,546 bytes).
 
 ## Evidence ledger
 
@@ -55,5 +55,5 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 
 - Dashboard availability and whether `id: 9001` is available.
 - Exact hidden-question distribution and ground-truth canonicalization for `ONCHAIN_TX_LOOKUP`.
-- Production RPC provider selection, deployment URL, wallet/fee address, and registration transaction.
+- Production RPC provider selection, wallet/fee address, and registration transaction.
 - Whether the early-access submission endpoints are available in the user's registered account.

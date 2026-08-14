@@ -1,0 +1,14 @@
+{
+  "name": "verity-telegraph-miner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A deterministic ONCHAIN_TX_LOOKUP Miner for Telegraph.",
+  "type": "module",
+  "scripts": {
+    "start": "node miner/server.mjs",
+    "test": "node --test miner/server.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

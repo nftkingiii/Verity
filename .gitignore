@@ -1,0 +1,5 @@
+.env
+node_modules/
+scorer/target/
+*.wasm
+!scorer/dist/.gitkeep

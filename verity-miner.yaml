@@ -1,0 +1,69 @@
+version: "1"
+kind: miner
+id: 9001 # Confirm availability in the integration dashboard before registration.
+slug: verity-onchain-lookup
+protocol: generic
+name: Verity On-Chain Transaction Lookup
+description: Deterministic EVM transaction lookups with a compact canonical payload for ground-truth evaluation.
+base_url: https://REPLACE_WITH_PUBLIC_MINER_URL
+
+rate_limit_per_sec: 8
+cache_ttl_sec: 0
+circuit_threshold: 3
+circuit_cooldown_seconds: 20
+
+endpoints:
+  - path: /lookup
+    external_path: /v1/lookup
+    method: GET
+    description: Look up a transaction on a supported EVM chain.
+    param_map:
+      chain: chain
+      tx_hash: tx_hash
+
+input_schema:
+  type: object
+  required: [chain, tx_hash]
+  additionalProperties: false
+  properties:
+    chain:
+      type: string
+      enum: [ethereum, base, arbitrum, optimism, polygon]
+    tx_hash:
+      type: string
+      pattern: "^0x[0-9a-fA-F]{64}$"
+
+output_schema:
+  type: object
+  required: [chain, chain_id, tx_hash, status, confidence, canonical, summary]
+  properties:
+    chain: { type: string }
+    chain_id: { type: integer }
+    tx_hash: { type: string }
+    status: { type: string }
+    block_number: { type: [string, "null"] }
+    from: { type: string }
+    to: { type: string }
+    value_wei: { type: string }
+    confidence: { type: number, minimum: 0, maximum: 1 }
+    canonical: { type: string }
+    summary: { type: string }
+
+semantics:
+  signal_mapping:
+    confidence_field: confidence
+    label_field: canonical
+    reason_field: summary
+  supported_intents:
+    - ONCHAIN_TX_LOOKUP
+
+limitations:
+  - code: MAX_PARAM_VALUE
+    message: tx_hash accepts exactly one 32-byte EVM transaction hash.
+    param: tx_hash
+    property: length
+    value_num: 66
+    operator: eq
+
+docs:
+  repository: https://github.com/REPLACE_WITH_OWNER/verity

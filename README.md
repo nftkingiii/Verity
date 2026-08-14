@@ -1,6 +1,6 @@
 # Verity
 
-Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner and paired WebAssembly scoring module for Telegraph.
+Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner, a `WEATHER_CHECK` Miner, and a paired WebAssembly scoring module for Telegraph.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
 **Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.2/verity_scorer.wasm
@@ -23,6 +23,10 @@ curl "http://localhost:8080/health"
 ```
 
 For production, configure dedicated RPC URLs in the environment. Public defaults are suitable only for local proving; leaderboard reliability needs provider-backed endpoints and monitoring.
+
+### Weather miner
+
+`GET /v1/weather?latitude=6.5244&longitude=3.3792` validates bounded coordinates and queries only the fixed Open-Meteo HTTPS host. It returns timestamped current conditions and a canonical payload. The configuration is in `verity-weather-miner.yaml`; it is built and tested locally but deliberately not registered until the evaluator's replacement status is confirmed.
 
 ## Telegraph configuration
 

@@ -4,6 +4,8 @@ const PORT = Number.parseInt(process.env.PORT ?? "8080", 10);
 const MAX_URL_LENGTH = 4_096;
 const MAX_TX_HASH_LENGTH = 66;
 const RPC_TIMEOUT_MS = 8_000;
+const WEATHER_TIMEOUT_MS = 8_000;
+const WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
 const REVISION = process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "unknown";
 
 const CHAINS = {
@@ -70,6 +72,16 @@ function canonicalAddress(value) {
     : "-";
 }
 
+function coordinate(value, minimum, maximum) {
+  if (typeof value !== "string" || value.trim().length === 0 || value.trim().length > 16) return null;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= minimum && number <= maximum ? number : null;
+}
+
+function canonicalCoordinate(value) {
+  return value.toFixed(4);
+}
+
 function rpcUrl(chain) {
   return process.env[chain.env]?.trim() || chain.defaultRpc;
 }
@@ -91,6 +103,84 @@ async function rpc(url, method, params) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+async function fetchWeather(url, fetcher = fetch) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), WEATHER_TIMEOUT_MS);
+  try {
+    const response = await fetcher(url, {
+      headers: { accept: "application/json" },
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`WEATHER_HTTP_${response.status}`);
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function lookupWeather({ latitude: latitudeInput, longitude: longitudeInput }, fetcher = fetch) {
+  const latitude = coordinate(latitudeInput, -90, 90);
+  const longitude = coordinate(longitudeInput, -180, 180);
+  if (latitude === null || longitude === null) {
+    return {
+      error: "INVALID_COORDINATES",
+      message: "latitude must be between -90 and 90 and longitude must be between -180 and 180.",
+    };
+  }
+
+  const url = new URL(WEATHER_API_URL);
+  url.searchParams.set("latitude", canonicalCoordinate(latitude));
+  url.searchParams.set("longitude", canonicalCoordinate(longitude));
+  url.searchParams.set(
+    "current",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m",
+  );
+  url.searchParams.set("timezone", "UTC");
+  const body = await fetchWeather(url, fetcher);
+  const current = body?.current;
+  const required = [
+    "time",
+    "temperature_2m",
+    "relative_humidity_2m",
+    "apparent_temperature",
+    "precipitation",
+    "weather_code",
+    "wind_speed_10m",
+  ];
+  if (!current || required.some((field) => typeof current[field] !== "number" && typeof current[field] !== "string")) {
+    throw new Error("WEATHER_MALFORMED_RESPONSE");
+  }
+
+  const lat = canonicalCoordinate(latitude);
+  const lon = canonicalCoordinate(longitude);
+  const canonical = [
+    lat,
+    lon,
+    current.time,
+    current.temperature_2m,
+    current.relative_humidity_2m,
+    current.apparent_temperature,
+    current.precipitation,
+    current.weather_code,
+    current.wind_speed_10m,
+  ].join("|");
+  return {
+    latitude: lat,
+    longitude: lon,
+    observed_at: current.time,
+    temperature_c: current.temperature_2m,
+    relative_humidity_percent: current.relative_humidity_2m,
+    apparent_temperature_c: current.apparent_temperature,
+    precipitation_mm: current.precipitation,
+    weather_code: current.weather_code,
+    wind_speed_kmh: current.wind_speed_10m,
+    confidence: 1,
+    canonical,
+    summary: "Current conditions verified against Open-Meteo at request time.",
+  };
 }
 
 export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput }) {
@@ -163,9 +253,21 @@ export function createServer() {
       return json(response, 200, {
         status: "ok",
         service: "verity",
-        intent: "ONCHAIN_TX_LOOKUP",
+        intents: ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK"],
         revision: REVISION,
       });
+    }
+    if (url.pathname === "/v1/weather") {
+      try {
+        const result = await lookupWeather({
+          latitude: url.searchParams.get("latitude"),
+          longitude: url.searchParams.get("longitude"),
+        });
+        return json(response, result.error ? 400 : 200, result);
+      } catch (error) {
+        console.error("weather_lookup_failed", { message: error instanceof Error ? error.message : "unknown" });
+        return json(response, 502, { error: "UPSTREAM_UNAVAILABLE", message: "Current weather data could not be queried." });
+      }
     }
     if (url.pathname !== "/v1/lookup") return json(response, 404, { error: "NOT_FOUND" });
 

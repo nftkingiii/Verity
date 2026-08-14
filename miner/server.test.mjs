@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer } from "./server.mjs";
+import { createServer, lookupWeather } from "./server.mjs";
 
 const HASH = `0x${"a".repeat(64)}`;
 
@@ -15,16 +15,55 @@ async function withServer(run) {
   }
 }
 
-test("health endpoint identifies the correct canonical intent", async () => {
+test("health endpoint identifies Verity's supported canonical intents", async () => {
   await withServer(async (base) => {
     const response = await fetch(`${base}/health`);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
     const body = await response.json();
-    assert.equal(body.intent, "ONCHAIN_TX_LOOKUP");
+    assert.deepEqual(body.intents, ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK"]);
     assert.equal(body.revision, "unknown");
   });
+});
+
+test("weather lookup rejects invalid coordinates before the upstream request", async () => {
+  let called = false;
+  const result = await lookupWeather(
+    { latitude: "91", longitude: "0" },
+    async () => {
+      called = true;
+      throw new Error("must not fetch");
+    },
+  );
+  assert.equal(result.error, "INVALID_COORDINATES");
+  assert.equal(called, false);
+});
+
+test("weather lookup returns a stable canonical current-conditions payload", async () => {
+  const response = await lookupWeather(
+    { latitude: "6.5244", longitude: "3.3792" },
+    async (url) => {
+      assert.equal(url.origin, "https://api.open-meteo.com");
+      assert.equal(url.pathname, "/v1/forecast");
+      return {
+        ok: true,
+        json: async () => ({
+          current: {
+            time: "2026-08-14T08:00",
+            temperature_2m: 27.5,
+            relative_humidity_2m: 81,
+            apparent_temperature: 31.2,
+            precipitation: 0,
+            weather_code: 2,
+            wind_speed_10m: 14.1,
+          },
+        }),
+      };
+    },
+  );
+  assert.equal(response.canonical, "6.5244|3.3792|2026-08-14T08:00|27.5|81|31.2|0|2|14.1");
+  assert.equal(response.confidence, 1);
 });
 
 test("lookup rejects unsupported chains without calling an upstream", async () => {

@@ -1,0 +1,66 @@
+version: "1"
+kind: miner
+id: 9002 # Confirm availability in the integration dashboard before registration.
+slug: verity-current-weather
+protocol: generic
+name: Verity Current Weather Check
+description: Deterministic current weather conditions for exact coordinates, normalized into a compact canonical payload.
+base_url: https://verity-production-fcf5.up.railway.app
+
+rate_limit_per_sec: 4
+cache_ttl_sec: 0
+circuit_threshold: 3
+circuit_cooldown_seconds: 20
+
+endpoints:
+  - path: /weather
+    external_path: /v1/weather
+    method: GET
+    description: Read current weather conditions at a supplied latitude and longitude.
+    param_map:
+      latitude: latitude
+      longitude: longitude
+
+input_schema:
+  type: object
+  required: [latitude, longitude]
+  additionalProperties: false
+  properties:
+    latitude: { type: string, pattern: "^-?(?:[0-8]?\\d(?:\\.\\d+)?|90(?:\\.0+)?)$" }
+    longitude: { type: string, pattern: "^-?(?:1?[0-7]?\\d(?:\\.\\d+)?|180(?:\\.0+)?)$" }
+
+output_schema:
+  type: object
+  required: [latitude, longitude, observed_at, temperature_c, relative_humidity_percent, apparent_temperature_c, precipitation_mm, weather_code, wind_speed_kmh, confidence, canonical, summary]
+  properties:
+    latitude: { type: string }
+    longitude: { type: string }
+    observed_at: { type: string }
+    temperature_c: { type: number }
+    relative_humidity_percent: { type: number }
+    apparent_temperature_c: { type: number }
+    precipitation_mm: { type: number }
+    weather_code: { type: number }
+    wind_speed_kmh: { type: number }
+    confidence: { type: number, minimum: 0, maximum: 1 }
+    canonical: { type: string }
+    summary: { type: string }
+
+semantics:
+  signal_mapping:
+    confidence_field: confidence
+    label_field: canonical
+    reason_field: summary
+  supported_intents:
+    - WEATHER_CHECK
+
+limitations:
+  - code: COORDINATE_RANGE
+    message: latitude must be between -90 and 90 and longitude must be between -180 and 180.
+    param: latitude
+    property: range
+    value_num: 90
+    operator: lte
+
+docs:
+  repository: https://github.com/nftkingiii/Verity

@@ -8,6 +8,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 
 - **Working name:** Verity (one-word; do not publish or register until availability is checked).
 - **Tracks:** Miner Track as the primary entry; Script Author Track if the early-access rules permit the same participant to enter both.
+- **Second miner:** `WEATHER_CHECK`, not `GAS_PRICE`: the live canonical catalog reported four Weather miners and zero Gas Price miners on 2026-08-14. The latter cannot presently satisfy the three-active-miner prize guardrail.
 - **Thesis:** Transaction lookups should return normalized, chain-aware evidence—not a raw RPC passthrough. The evaluator should score exactness, provenance, and resistance to fabricated / mismatched-chain responses.
 
 ## Confirmed program facts — checked 2026-08-14
@@ -26,6 +27,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Correct transaction evidence | Multi-RPC lookup with canonical receipt, block, and chain metadata | Unit fixtures plus independent RPC read-back | Planned |
 | Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | Generic self-match regression plus canonical/forged-answer tests; verify `memory`, `alloc`, `dealloc`, `rank_answer`, and `breakdown_answer` exports before upload | v0.1.2 awaiting rebuild and dashboard registration |
 | Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
+| Weather Check miner | GET `/v1/weather?latitude=&longitude=` backed by a fixed Open-Meteo HTTPS host | Bounded-coordinate rejection and deterministic fixture tests | Built locally; registration gated on evaluator result |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |
 

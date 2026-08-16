@@ -9,6 +9,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - **Working name:** Verity (one-word; do not publish or register until availability is checked).
 - **Tracks:** Miner Track as the primary entry; Script Author Track if the early-access rules permit the same participant to enter both.
 - **Second miner:** `WEATHER_CHECK`, not `GAS_PRICE`: the live canonical catalog reported four Weather miners and zero Gas Price miners on 2026-08-14. The latter cannot presently satisfy the three-active-miner prize guardrail.
+- **Third miner:** `WEATHER_FORECAST`: the live catalog reported five miners on 2026-08-16, which clears the three-active-miner participation guardrail. It is intentionally separate from current-conditions Weather Check.
 - **Thesis:** Transaction lookups should return normalized, chain-aware evidence—not a raw RPC passthrough. The evaluator should score exactness, provenance, and resistance to fabricated / mismatched-chain responses.
 
 ## Confirmed program facts — checked 2026-08-14
@@ -28,6 +29,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | Generic self-match regression plus canonical/forged-answer tests; verify `memory`, `alloc`, `dealloc`, and `rank_answer` exports before upload | v0.1.3 built against the team's updated ABI; wait for contract deployment before registration |
 | Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
 | Weather Check miner | GET `/v1/weather?latitude=&longitude=` backed by a fixed Open-Meteo HTTPS host | Local tests plus direct dashboard validation API read-back (`valid: true`, 2026-08-16) | Ready to upload and register |
+| Weather Forecast miner | GET `/v1/forecast?latitude=&longitude=&forecast_days=` backed by fixed Open-Meteo HTTPS | Bounded horizon, deterministic fixtures, public YAML | Built; deployment and registration pending |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |
 

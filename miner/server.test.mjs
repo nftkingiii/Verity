@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer, lookupWeather } from "./server.mjs";
+import { createServer, lookupForecast, lookupWeather } from "./server.mjs";
 
 const HASH = `0x${"a".repeat(64)}`;
 
@@ -22,7 +22,7 @@ test("health endpoint identifies Verity's supported canonical intents", async ()
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
     const body = await response.json();
-    assert.deepEqual(body.intents, ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK"]);
+    assert.deepEqual(body.intents, ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST"]);
     assert.equal(body.revision, "unknown");
   });
 });
@@ -64,6 +64,33 @@ test("weather lookup returns a stable canonical current-conditions payload", asy
   );
   assert.equal(response.canonical, "6.5244|3.3792|2026-08-14T08:00|27.5|81|31.2|0|2|14.1");
   assert.equal(response.confidence, 1);
+});
+
+test("forecast rejects an excessive horizon before the upstream request", async () => {
+  let called = false;
+  const result = await lookupForecast(
+    { latitude: "6.5244", longitude: "3.3792", forecast_days: "8" },
+    async () => { called = true; throw new Error("must not fetch"); },
+  );
+  assert.equal(result.error, "INVALID_FORECAST_REQUEST");
+  assert.equal(called, false);
+});
+
+test("forecast returns a stable canonical daily payload", async () => {
+  const result = await lookupForecast(
+    { latitude: "6.5244", longitude: "3.3792", forecast_days: "2" },
+    async (url) => {
+      assert.equal(url.origin, "https://api.open-meteo.com");
+      assert.equal(url.searchParams.get("forecast_days"), "2");
+      return { ok: true, json: async () => ({ daily: {
+        time: ["2026-08-17", "2026-08-18"], weather_code: [2, 3],
+        temperature_2m_max: [29.5, 30.1], temperature_2m_min: [24.2, 24.7],
+        precipitation_probability_max: [15, 40], wind_speed_10m_max: [18.5, 20.2],
+      } }) };
+    },
+  );
+  assert.equal(result.canonical, "6.5244|3.3792|2|2026-08-17,2,29.5,24.2,15,18.5|2026-08-18,3,30.1,24.7,40,20.2");
+  assert.equal(result.days.length, 2);
 });
 
 test("lookup rejects unsupported chains without calling an upstream", async () => {

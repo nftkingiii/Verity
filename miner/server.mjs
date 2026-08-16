@@ -6,6 +6,7 @@ const MAX_TX_HASH_LENGTH = 66;
 const RPC_TIMEOUT_MS = 8_000;
 const WEATHER_TIMEOUT_MS = 8_000;
 const WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
+const MAX_FORECAST_DAYS = 7;
 const REVISION = process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "unknown";
 
 const CHAINS = {
@@ -80,6 +81,12 @@ function coordinate(value, minimum, maximum) {
 
 function canonicalCoordinate(value) {
   return value.toFixed(4);
+}
+
+function forecastDays(value) {
+  if (typeof value !== "string" || !/^\d{1,2}$/.test(value.trim())) return null;
+  const days = Number(value);
+  return Number.isInteger(days) && days >= 1 && days <= MAX_FORECAST_DAYS ? days : null;
 }
 
 function rpcUrl(chain) {
@@ -183,6 +190,58 @@ export async function lookupWeather({ latitude: latitudeInput, longitude: longit
   };
 }
 
+export async function lookupForecast({ latitude: latitudeInput, longitude: longitudeInput, forecast_days: daysInput }, fetcher = fetch) {
+  const latitude = coordinate(latitudeInput, -90, 90);
+  const longitude = coordinate(longitudeInput, -180, 180);
+  const days = forecastDays(daysInput ?? "3");
+  if (latitude === null || longitude === null || days === null) {
+    return {
+      error: "INVALID_FORECAST_REQUEST",
+      message: "latitude and longitude must be valid coordinates; forecast_days must be an integer from 1 to 7.",
+    };
+  }
+
+  const url = new URL(WEATHER_API_URL);
+  url.searchParams.set("latitude", canonicalCoordinate(latitude));
+  url.searchParams.set("longitude", canonicalCoordinate(longitude));
+  url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max");
+  url.searchParams.set("forecast_days", String(days));
+  url.searchParams.set("timezone", "UTC");
+  const body = await fetchWeather(url, fetcher);
+  const daily = body?.daily;
+  const fields = ["time", "weather_code", "temperature_2m_max", "temperature_2m_min", "precipitation_probability_max", "wind_speed_10m_max"];
+  if (!daily || fields.some((field) => !Array.isArray(daily[field]) || daily[field].length !== days)) {
+    throw new Error("FORECAST_MALFORMED_RESPONSE");
+  }
+
+  const daysPayload = daily.time.map((date, index) => {
+    const values = fields.slice(1).map((field) => daily[field][index]);
+    if (typeof date !== "string" || values.some((value) => typeof value !== "number")) {
+      throw new Error("FORECAST_MALFORMED_RESPONSE");
+    }
+    return {
+      date,
+      weather_code: daily.weather_code[index],
+      temperature_max_c: daily.temperature_2m_max[index],
+      temperature_min_c: daily.temperature_2m_min[index],
+      precipitation_probability_max_percent: daily.precipitation_probability_max[index],
+      wind_speed_max_kmh: daily.wind_speed_10m_max[index],
+    };
+  });
+  const lat = canonicalCoordinate(latitude);
+  const lon = canonicalCoordinate(longitude);
+  const canonical = [lat, lon, days, ...daysPayload.map((day) => [day.date, day.weather_code, day.temperature_max_c, day.temperature_min_c, day.precipitation_probability_max_percent, day.wind_speed_max_kmh].join(","))].join("|");
+  return {
+    latitude: lat,
+    longitude: lon,
+    forecast_days: days,
+    days: daysPayload,
+    confidence: 1,
+    canonical,
+    summary: "Daily forecast verified against Open-Meteo at request time.",
+  };
+}
+
 export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput }) {
   const chainName = normaliseChain(chainInput);
   const txHash = normaliseHash(hashInput);
@@ -253,7 +312,7 @@ export function createServer() {
       return json(response, 200, {
         status: "ok",
         service: "verity",
-        intents: ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK"],
+        intents: ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST"],
         revision: REVISION,
       });
     }
@@ -267,6 +326,19 @@ export function createServer() {
       } catch (error) {
         console.error("weather_lookup_failed", { message: error instanceof Error ? error.message : "unknown" });
         return json(response, 502, { error: "UPSTREAM_UNAVAILABLE", message: "Current weather data could not be queried." });
+      }
+    }
+    if (url.pathname === "/v1/forecast") {
+      try {
+        const result = await lookupForecast({
+          latitude: url.searchParams.get("latitude"),
+          longitude: url.searchParams.get("longitude"),
+          forecast_days: url.searchParams.get("forecast_days"),
+        });
+        return json(response, result.error ? 400 : 200, result);
+      } catch (error) {
+        console.error("forecast_lookup_failed", { message: error instanceof Error ? error.message : "unknown" });
+        return json(response, 502, { error: "UPSTREAM_UNAVAILABLE", message: "Forecast data could not be queried." });
       }
     }
     if (url.pathname !== "/v1/lookup") return json(response, 404, { error: "NOT_FOUND" });

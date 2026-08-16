@@ -1,0 +1,86 @@
+version: "1"
+kind: miner
+id: 9003 # Confirm availability in the integration dashboard before registration.
+slug: verity-weather-forecast
+protocol: generic
+name: Verity Weather Forecast
+description: Deterministic daily weather forecast for exact coordinates, normalized into a compact canonical payload.
+base_url: https://verity-production-fcf5.up.railway.app
+
+rate_limit_per_sec: 4
+cache_ttl_sec: 0
+circuit_threshold: 3
+circuit_cooldown_seconds: 20
+
+endpoints:
+  - path: /forecast
+    external_path: /v1/forecast
+    method: GET
+    description: Read the next one to seven daily forecasts for supplied coordinates.
+    intents: [WEATHER_FORECAST]
+    params:
+      query:
+        required:
+          - name: latitude
+            type: number
+            intents: ["*"]
+            description: Latitude in decimal degrees (-90 to 90).
+            example: 6.5244
+          - name: longitude
+            type: number
+            intents: ["*"]
+            description: Longitude in decimal degrees (-180 to 180).
+            example: 3.3792
+        optional:
+          - name: forecast_days
+            type: integer
+            intents: ["*"]
+            description: Forecast horizon in days (1 to 7); defaults to 3.
+            example: 3
+    param_map:
+      latitude: latitude
+      longitude: longitude
+      forecast_days: forecast_days
+
+input_schema:
+  type: object
+  required: [latitude, longitude]
+  additionalProperties: false
+  properties:
+    latitude: { type: string, pattern: "^-?(?:[0-8]?\\d(?:\\.\\d+)?|90(?:\\.0+)?)$" }
+    longitude: { type: string, pattern: "^-?(?:1?[0-7]?\\d(?:\\.\\d+)?|180(?:\\.0+)?)$" }
+    forecast_days: { type: string, pattern: "^[1-7]$" }
+
+output_schema:
+  type: object
+  required: [latitude, longitude, forecast_days, days, confidence, canonical, summary]
+  properties:
+    latitude: { type: string }
+    longitude: { type: string }
+    forecast_days: { type: number }
+    days:
+      type: array
+      items:
+        type: object
+        required: [date, weather_code, temperature_max_c, temperature_min_c, precipitation_probability_max_percent, wind_speed_max_kmh]
+        properties:
+          date: { type: string }
+          weather_code: { type: number }
+          temperature_max_c: { type: number }
+          temperature_min_c: { type: number }
+          precipitation_probability_max_percent: { type: number }
+          wind_speed_max_kmh: { type: number }
+    confidence: { type: number, minimum: 0, maximum: 1 }
+    canonical: { type: string }
+    summary: { type: string }
+
+semantics:
+  signal_mapping:
+    confidence_field: confidence
+    label_field: canonical
+    reason_field: summary
+  supported_intents:
+    - WEATHER_FORECAST
+
+docs:
+  repository: https://github.com/nftkingiii/Verity

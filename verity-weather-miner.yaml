@@ -17,6 +17,22 @@ endpoints:
     external_path: /v1/weather
     method: GET
     description: Read current weather conditions at a supplied latitude and longitude.
+    intents: [WEATHER_CHECK]
+    # Telegraph's validator uses this endpoint-level request contract to build
+    # its sandbox probe. input_schema alone is only catalog metadata.
+    params:
+      query:
+        required:
+          - name: latitude
+            type: number
+            intents: ["*"]
+            description: Latitude in decimal degrees (-90 to 90).
+            example: 6.5244
+          - name: longitude
+            type: number
+            intents: ["*"]
+            description: Longitude in decimal degrees (-180 to 180).
+            example: 3.3792
     param_map:
       latitude: latitude
       longitude: longitude

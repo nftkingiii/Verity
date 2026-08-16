@@ -32,6 +32,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Weather Check miner | GET `/v1/weather?latitude=&longitude=` backed by a fixed Open-Meteo HTTPS host | Local tests plus direct dashboard validation API read-back (`valid: true`, 2026-08-16) | Ready to upload and register |
 | Weather Forecast miner | GET `/v1/forecast?latitude=&longitude=&forecast_days=` backed by fixed Open-Meteo HTTPS | Bounded horizon, deterministic fixtures, public YAML | Active (direct user report, 2026-08-16) |
 | Weather Forecast evaluator | Stateless WASM scorer for coordinate, horizon, and complete daily-record agreement | `weather-forecast-scorer` tests plus WASM runtime read-back | Built locally; needs dashboard registration |
+| Weather Check evaluator | Stateless WASM scorer for coordinate, observation time, and current-condition agreement | `weather-check-scorer` tests plus WASM runtime read-back | Built locally; needs dashboard registration |
 | News Search miner | GET `/v1/news?q=&max_results=` backed by fixed Google News RSS HTTPS | Bounded query/result count, no article fetching, deterministic RSS fixture | Built; deployment and registration pending |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |

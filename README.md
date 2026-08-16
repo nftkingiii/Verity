@@ -83,6 +83,12 @@ cargo build --release --target wasm32-unknown-unknown
 Upload `weather-forecast-scorer/target/wasm32-unknown-unknown/release/verity_weather_forecast_scorer.wasm`
 to a new Telegraph WASM registration for `WEATHER_FORECAST`.
 
+### Weather Check evaluator
+
+`weather-check-scorer` is the separate, stateless evaluator for `WEATHER_CHECK`.
+It scores coordinates, observation time, and each normalized current-condition
+measurement without allowing malformed payloads to receive partial credit.
+
 ## Status
 
 The implementation follows the public Miner YAML and WASM ABI documentation checked on 2026-08-14. It still requires live dashboard sandbox validation, a production deployment, actual Miner registration, and an end-to-end Telegraph request before any live-performance claim.

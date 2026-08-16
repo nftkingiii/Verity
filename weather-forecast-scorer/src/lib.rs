@@ -4,6 +4,8 @@
 use core::panic::PanicInfo;
 
 const HEAP_SIZE: usize = 1024 * 1024;
+const MAX_GENERIC_BYTES: usize = 8 * 1024;
+const MAX_GENERIC_TOKENS: usize = 64;
 static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 static mut HEAP_OFFSET: usize = 0;
 
@@ -97,6 +99,40 @@ fn valid_payload(value: &str) -> bool {
     true
 }
 
+fn next_token(value: &str, mut cursor: usize) -> Option<(&str, usize)> {
+    let bytes = value.as_bytes();
+    while cursor < bytes.len() && !bytes[cursor].is_ascii_alphanumeric() { cursor += 1; }
+    let start = cursor;
+    while cursor < bytes.len() && bytes[cursor].is_ascii_alphanumeric() { cursor += 1; }
+    (start < cursor).then_some((&value[start..cursor], cursor))
+}
+
+fn generic_score(ground_truth: &str, miner_answer: &str) -> f32 {
+    if ground_truth.len() > MAX_GENERIC_BYTES || miner_answer.len() > MAX_GENERIC_BYTES { return 0.0; }
+    let mut expected_count = 0;
+    let mut matches = 0;
+    let mut cursor = 0;
+    while let Some((token, next)) = next_token(ground_truth, cursor) {
+        cursor = next;
+        expected_count += 1;
+        if expected_count > MAX_GENERIC_TOKENS { return 0.0; }
+        if token.len() < 2 { continue; }
+        let mut answer_cursor = 0;
+        while let Some((candidate, answer_next)) = next_token(miner_answer, answer_cursor) {
+            answer_cursor = answer_next;
+            if token.eq_ignore_ascii_case(candidate) { matches += 1; break; }
+        }
+    }
+    let mut answer_count = 0;
+    cursor = 0;
+    while let Some((_, next)) = next_token(miner_answer, cursor) {
+        cursor = next;
+        answer_count += 1;
+        if answer_count > MAX_GENERIC_TOKENS { return 0.0; }
+    }
+    if expected_count == 0 || answer_count == 0 { 0.0 } else { (2 * matches) as f32 / (expected_count + answer_count) as f32 }
+}
+
 fn score(ground_truth: &str, miner_answer: &str) -> f32 {
     if ground_truth.trim().is_empty() || miner_answer.trim().is_empty() {
         return 0.0;
@@ -107,7 +143,9 @@ fn score(ground_truth: &str, miner_answer: &str) -> f32 {
         return 1.0;
     }
     if !valid_payload(ground_truth) || !valid_payload(miner_answer) {
-        return 0.0;
+        return if !ground_truth.contains('|') && !miner_answer.contains('|') {
+            generic_score(ground_truth, miner_answer)
+        } else { 0.0 };
     }
 
     let expected_days = field(ground_truth, 2).and_then(|value| value.parse::<usize>().ok()).unwrap_or(0);
@@ -164,7 +202,8 @@ mod tests {
     #[test]
     fn generic_structural_self_match_scores_perfectly() {
         assert_eq!(score("structural fixture", "structural fixture"), 1.0);
-        assert_eq!(score("structural fixture", "unrelated fixture"), 0.0);
+        assert_eq!(score("structural fixture", "unrelated fixture"), 0.5);
+        assert_eq!(score("candidate factual score 25", "candidate factual score 24"), 0.75);
     }
 
     #[test]

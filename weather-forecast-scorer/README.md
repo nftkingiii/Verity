@@ -7,6 +7,8 @@ latitude|longitude|forecast_days|YYYY-MM-DD,weather_code,max_c,min_c,rain_percen
 ```
 
 It exports only the current evaluator ABI: `alloc`, `dealloc`, and `rank_answer`.
+For Telegraph's non-production candidate fixtures, it uses a bounded token
+similarity fallback; malformed forecast canonical strings still score zero.
 
 ```powershell
 cd weather-forecast-scorer

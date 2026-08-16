@@ -7,6 +7,8 @@ latitude|longitude|observed_at|temperature_c|humidity_percent|apparent_temperatu
 ```
 
 It exports only `alloc`, `dealloc`, and `rank_answer`.
+For Telegraph's non-production candidate fixtures, it uses a bounded token
+similarity fallback; malformed weather canonical strings still score zero.
 
 ```powershell
 cd weather-check-scorer

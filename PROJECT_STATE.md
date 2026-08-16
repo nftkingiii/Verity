@@ -9,7 +9,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - **Working name:** Verity (one-word; do not publish or register until availability is checked).
 - **Tracks:** Miner Track as the primary entry; Script Author Track if the early-access rules permit the same participant to enter both.
 - **Second miner:** `WEATHER_CHECK`, not `GAS_PRICE`: the live canonical catalog reported four Weather miners and zero Gas Price miners on 2026-08-14. The latter cannot presently satisfy the three-active-miner prize guardrail.
-- **Third miner:** `WEATHER_FORECAST`: the live catalog reported five miners on 2026-08-16, which clears the three-active-miner participation guardrail. It is intentionally separate from current-conditions Weather Check.
+- **Third miner:** `WEATHER_FORECAST`: direct user report confirms it became active on 2026-08-16. It is intentionally separate from current-conditions Weather Check.
 - **Fourth miner:** `NEWS_SEARCH`: the live leaderboard showed exactly three ranked miners on 2026-08-16; GDELT was rejected after persistent upstream rate limits, and the user approved a fixed Google News RSS implementation instead.
 - **Thesis:** Transaction lookups should return normalized, chain-aware evidence—not a raw RPC passthrough. The evaluator should score exactness, provenance, and resistance to fabricated / mismatched-chain responses.
 
@@ -30,16 +30,17 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | Generic self-match regression plus canonical/forged-answer tests; verify `memory`, `alloc`, `dealloc`, and `rank_answer` exports before upload | v0.1.3 built against the team's updated ABI; wait for contract deployment before registration |
 | Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
 | Weather Check miner | GET `/v1/weather?latitude=&longitude=` backed by a fixed Open-Meteo HTTPS host | Local tests plus direct dashboard validation API read-back (`valid: true`, 2026-08-16) | Ready to upload and register |
-| Weather Forecast miner | GET `/v1/forecast?latitude=&longitude=&forecast_days=` backed by fixed Open-Meteo HTTPS | Bounded horizon, deterministic fixtures, public YAML | Built; deployment and registration pending |
+| Weather Forecast miner | GET `/v1/forecast?latitude=&longitude=&forecast_days=` backed by fixed Open-Meteo HTTPS | Bounded horizon, deterministic fixtures, public YAML | Active (direct user report, 2026-08-16) |
+| Weather Forecast evaluator | Stateless WASM scorer for coordinate, horizon, and complete daily-record agreement | `weather-forecast-scorer` tests plus WASM runtime read-back | Built locally; needs dashboard registration |
 | News Search miner | GET `/v1/news?q=&max_results=` backed by fixed Google News RSS HTTPS | Bounded query/result count, no article fetching, deterministic RSS fixture | Built; deployment and registration pending |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |
 
 ## Immediate next actions
 
-1. Use the integration dashboard sandbox test with the published YAML and scorer release asset.
-2. Recheck `ONCHAIN_TX_LOOKUP` from the live canonical set immediately before registration.
-3. Register the Miner and WASM scorer, then preserve transaction hashes, miner ID, and endpoint read-back.
+1. Upload and register the Weather Forecast evaluator against `WEATHER_FORECAST`.
+2. Check the existing ONCHAIN scorer dashboard status; submitted is not the same as active.
+3. Keep active Miner endpoints healthy and periodically inspect their leaderboard records.
 
 ## Local verification — 2026-08-14
 

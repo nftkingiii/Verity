@@ -1,5 +1,6 @@
 .env
 node_modules/
 scorer/target/
+weather-forecast-scorer/target/
 *.wasm
 !scorer/dist/.gitkeep

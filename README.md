@@ -66,6 +66,23 @@ Register the resulting `scorer/target/wasm32-unknown-unknown/release/verity_scor
 
 The verified v0.1.3 scorer binary is already available from the GitHub Release linked above.
 
+### Weather Forecast evaluator
+
+`weather-forecast-scorer` is a separate, stateless evaluator for
+`WEATHER_FORECAST`. It scores Verity's canonical forecast format by matching
+the requested coordinates, forecast horizon, and each complete daily record.
+It intentionally gives no partial credit to malformed payloads and exports
+only `alloc`, `dealloc`, and `rank_answer`.
+
+```powershell
+cd weather-forecast-scorer
+cargo test
+cargo build --release --target wasm32-unknown-unknown
+```
+
+Upload `weather-forecast-scorer/target/wasm32-unknown-unknown/release/verity_weather_forecast_scorer.wasm`
+to a new Telegraph WASM registration for `WEATHER_FORECAST`.
+
 ## Status
 
 The implementation follows the public Miner YAML and WASM ABI documentation checked on 2026-08-14. It still requires live dashboard sandbox validation, a production deployment, actual Miner registration, and an end-to-end Telegraph request before any live-performance claim.

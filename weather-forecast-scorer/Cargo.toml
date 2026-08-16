@@ -1,0 +1,15 @@
+[package]
+name = "verity-weather-forecast-scorer"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Deterministic scorer for Telegraph WEATHER_FORECAST canonical payloads."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+panic = "abort"
+lto = true
+codegen-units = 1
+strip = true

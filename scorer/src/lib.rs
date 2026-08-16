@@ -107,22 +107,6 @@ pub unsafe extern "C" fn rank_answer(
     }
 }
 
-// Telegraph's registry performs a structural check for this companion export.
-// It follows the same pointer/length ABI as `rank_answer` and returns the
-// deterministic score so hosts that request a score breakdown receive a stable,
-// non-divergent result until richer rubric dimensions are published.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn breakdown_answer(
-    q_ptr: i32,
-    q_len: i32,
-    gt_ptr: i32,
-    gt_len: i32,
-    ma_ptr: i32,
-    ma_len: i32,
-) -> f32 {
-    unsafe { rank_answer(q_ptr, q_len, gt_ptr, gt_len, ma_ptr, ma_len) }
-}
-
 #[cfg(test)]
 extern crate std;
 

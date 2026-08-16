@@ -3,7 +3,7 @@
 Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner, a `WEATHER_CHECK` Miner, and a paired WebAssembly scoring module for Telegraph.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
-**Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.2/verity_scorer.wasm
+**Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.3/verity_scorer.wasm
 
 It accepts an EVM chain plus transaction hash, fetches the transaction and receipt from a fixed allowlist of RPC providers, and returns a compact canonical payload:
 
@@ -45,7 +45,7 @@ Upload exactly the bytes you hash. The dashboard sandbox-tests the endpoint, pin
 
 ## Scoring module
 
-The scorer implements Telegraph's required WASM exports: `alloc`, `dealloc`, `rank_answer`, and `breakdown_answer`. It is intentionally stateless and has no network/filesystem capability.
+The scorer implements Telegraph's required WASM exports: `alloc`, `dealloc`, and `rank_answer`. It is intentionally stateless and has no network/filesystem capability.
 
 ```bash
 cd scorer
@@ -56,7 +56,7 @@ cargo build --release --target wasm32-unknown-unknown
 
 Register the resulting `scorer/target/wasm32-unknown-unknown/release/verity_scorer.wasm` through the integration dashboard after hosting it at a durable public URL.
 
-The verified v0.1.2 scorer binary is already available from the GitHub Release linked above.
+The verified v0.1.3 scorer binary is already available from the GitHub Release linked above.
 
 ## Status
 

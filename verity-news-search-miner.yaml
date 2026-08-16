@@ -1,0 +1,75 @@
+version: "1"
+kind: miner
+id: 9004 # Confirm availability in the integration dashboard before registration.
+slug: verity-news-search
+protocol: generic
+name: Verity News Search
+description: Deterministic current-news search with source and publication-time provenance from a fixed Google News RSS feed.
+base_url: https://verity-production-fcf5.up.railway.app
+
+rate_limit_per_sec: 1
+cache_ttl_sec: 30
+circuit_threshold: 3
+circuit_cooldown_seconds: 20
+
+endpoints:
+  - path: /news
+    external_path: /v1/news
+    method: GET
+    description: Search current news by query and return normalized source-backed article results.
+    intents: [NEWS_SEARCH]
+    params:
+      query:
+        required:
+          - name: q
+            type: string
+            intents: ["*"]
+            description: News topic or search terms (up to 120 characters).
+            example: central bank interest rates
+        optional:
+          - name: max_results
+            type: integer
+            intents: ["*"]
+            description: Number of results from 1 to 10; defaults to 5.
+            example: 5
+    param_map:
+      q: q
+      max_results: max_results
+
+input_schema:
+  type: object
+  required: [q]
+  additionalProperties: false
+  properties:
+    q: { type: string, minLength: 1, maxLength: 120 }
+    max_results: { type: string, pattern: "^(?:[1-9]|10)$" }
+
+output_schema:
+  type: object
+  required: [query, articles, confidence, canonical, summary]
+  properties:
+    query: { type: string }
+    articles:
+      type: array
+      items:
+        type: object
+        required: [title, url, published_at, source]
+        properties:
+          title: { type: string }
+          url: { type: string }
+          published_at: { type: string }
+          source: { type: string }
+    confidence: { type: number, minimum: 0, maximum: 1 }
+    canonical: { type: string }
+    summary: { type: string }
+
+semantics:
+  signal_mapping:
+    confidence_field: confidence
+    label_field: canonical
+    reason_field: summary
+  supported_intents:
+    - NEWS_SEARCH
+
+docs:
+  repository: https://github.com/nftkingiii/Verity

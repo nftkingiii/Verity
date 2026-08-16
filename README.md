@@ -1,6 +1,6 @@
 # Verity
 
-Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner, `WEATHER_CHECK` Miner, `WEATHER_FORECAST` Miner, and paired WebAssembly scoring module for Telegraph.
+Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner, `WEATHER_CHECK` Miner, `WEATHER_FORECAST` Miner, `NEWS_SEARCH` Miner, and paired WebAssembly scoring module for Telegraph.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
 **Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.3/verity_scorer.wasm
@@ -31,6 +31,10 @@ For production, configure dedicated RPC URLs in the environment. Public defaults
 ### Weather Forecast miner
 
 `GET /v1/forecast?latitude=6.5244&longitude=3.3792&forecast_days=3` returns one to seven UTC daily forecasts and a canonical payload. It uses the same fixed Open-Meteo host, strictly bounds coordinates and horizon, and never accepts a caller-supplied URL. Its standalone Telegraph configuration is `verity-weather-forecast-miner.yaml`.
+
+### News Search miner
+
+`GET /v1/news?q=central+bank+interest+rates&max_results=5` queries a fixed Google News RSS host and returns up to ten normalized articles with source and publication-time provenance. It does not fetch returned article URLs. The standalone Telegraph configuration is `verity-news-search-miner.yaml`.
 
 ## Telegraph configuration
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createServer, lookupForecast, lookupWeather } from "./server.mjs";
+import { createServer, lookupForecast, lookupNews, lookupWeather } from "./server.mjs";
 
 const HASH = `0x${"a".repeat(64)}`;
 
@@ -22,7 +22,7 @@ test("health endpoint identifies Verity's supported canonical intents", async ()
     assert.equal(response.headers.get("x-content-type-options"), "nosniff");
     assert.equal(response.headers.get("x-frame-options"), "DENY");
     const body = await response.json();
-    assert.deepEqual(body.intents, ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST"]);
+    assert.deepEqual(body.intents, ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST", "NEWS_SEARCH"]);
     assert.equal(body.revision, "unknown");
   });
 });
@@ -91,6 +91,27 @@ test("forecast returns a stable canonical daily payload", async () => {
   );
   assert.equal(result.canonical, "6.5244|3.3792|2|2026-08-17,2,29.5,24.2,15,18.5|2026-08-18,3,30.1,24.7,40,20.2");
   assert.equal(result.days.length, 2);
+});
+
+test("news search rejects invalid input before the upstream request", async () => {
+  let called = false;
+  const result = await lookupNews({ q: "", max_results: "11" }, async () => { called = true; throw new Error("must not fetch"); });
+  assert.equal(result.error, "INVALID_NEWS_QUERY");
+  assert.equal(called, false);
+});
+
+test("news search normalizes the fixed Google News RSS response", async () => {
+  const result = await lookupNews(
+    { q: "OpenAI", max_results: "2" },
+    async (url) => {
+      assert.equal(url.origin, "https://news.google.com");
+      assert.equal(url.searchParams.get("q"), "OpenAI");
+      return { ok: true, headers: new Headers(), text: async () => `<?xml version="1.0"?><rss><channel><item><title><![CDATA[OpenAI update]]></title><link>https://news.google.com/rss/articles/one</link><pubDate>Sat, 16 Aug 2026 10:00:00 GMT</pubDate><source url="https://example.com">Example News</source></item><item><title>Second &amp; story</title><link>https://news.google.com/rss/articles/two</link><pubDate>Sat, 16 Aug 2026 09:00:00 GMT</pubDate><source>Second Source</source></item></channel></rss>` };
+    },
+  );
+  assert.equal(result.articles.length, 2);
+  assert.equal(result.articles[1].title, "Second & story");
+  assert.equal(result.canonical, "openai|Example News|Sat, 16 Aug 2026 10:00:00 GMT|OpenAI update|Second Source|Sat, 16 Aug 2026 09:00:00 GMT|Second & story");
 });
 
 test("lookup rejects unsupported chains without calling an upstream", async () => {

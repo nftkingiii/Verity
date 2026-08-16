@@ -7,6 +7,13 @@ const RPC_TIMEOUT_MS = 8_000;
 const WEATHER_TIMEOUT_MS = 8_000;
 const WEATHER_API_URL = "https://api.open-meteo.com/v1/forecast";
 const MAX_FORECAST_DAYS = 7;
+const NEWS_TIMEOUT_MS = 8_000;
+const GOOGLE_NEWS_RSS_URL = "https://news.google.com/rss/search";
+const MAX_NEWS_QUERY_LENGTH = 120;
+const MAX_NEWS_RESULTS = 10;
+const NEWS_CACHE_TTL_MS = 30_000;
+const NEWS_CACHE_LIMIT = 100;
+const newsCache = new Map();
 const REVISION = process.env.RAILWAY_GIT_COMMIT_SHA ?? process.env.GIT_COMMIT_SHA ?? "unknown";
 
 const CHAINS = {
@@ -89,6 +96,31 @@ function forecastDays(value) {
   return Number.isInteger(days) && days >= 1 && days <= MAX_FORECAST_DAYS ? days : null;
 }
 
+function newsQuery(value) {
+  if (typeof value !== "string") return null;
+  const query = value.trim().replace(/\s+/g, " ");
+  return query.length > 0 && query.length <= MAX_NEWS_QUERY_LENGTH && !/[\u0000-\u001F\u007F]/.test(query) ? query : null;
+}
+
+function newsResults(value) {
+  if (value === null || value === undefined || value === "") return 5;
+  if (typeof value !== "string" || !/^\d{1,2}$/.test(value.trim())) return null;
+  const count = Number(value);
+  return Number.isInteger(count) && count >= 1 && count <= MAX_NEWS_RESULTS ? count : null;
+}
+
+function xmlText(value) {
+  return value
+    .replace(/^<!\[CDATA\[([\s\S]*)\]\]>$/i, "$1")
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+}
+
+function xmlTag(block, tag) {
+  const match = block.match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return match ? xmlText(match[1]) : "";
+}
+
 function rpcUrl(chain) {
   return process.env[chain.env]?.trim() || chain.defaultRpc;
 }
@@ -123,6 +155,24 @@ async function fetchWeather(url, fetcher = fetch) {
     });
     if (!response.ok) throw new Error(`WEATHER_HTTP_${response.status}`);
     return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchNews(url, fetcher = fetch) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), NEWS_TIMEOUT_MS);
+  try {
+    const response = await fetcher(url, {
+      headers: { accept: "application/rss+xml, application/xml;q=0.9" },
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error(`NEWS_HTTP_${response.status}`);
+    const length = Number(response.headers?.get?.("content-length") ?? 0);
+    if (Number.isFinite(length) && length > 1_000_000) throw new Error("NEWS_RESPONSE_TOO_LARGE");
+    return response.text();
   } finally {
     clearTimeout(timeout);
   }
@@ -242,6 +292,47 @@ export async function lookupForecast({ latitude: latitudeInput, longitude: longi
   };
 }
 
+export async function lookupNews({ q: queryInput, max_results: maxResultsInput }, fetcher = fetch) {
+  const query = newsQuery(queryInput);
+  const maxResults = newsResults(maxResultsInput);
+  if (!query || maxResults === null) {
+    return { error: "INVALID_NEWS_QUERY", message: "q must be 1 to 120 printable characters; max_results must be an integer from 1 to 10." };
+  }
+  const cacheKey = `${query.toLowerCase()}|${maxResults}`;
+  const cached = newsCache.get(cacheKey);
+  if (cached && Date.now() - cached.createdAt < NEWS_CACHE_TTL_MS) return cached.value;
+
+  const url = new URL(GOOGLE_NEWS_RSS_URL);
+  url.searchParams.set("q", query);
+  url.searchParams.set("hl", "en-US");
+  url.searchParams.set("gl", "US");
+  url.searchParams.set("ceid", "US:en");
+  const xml = await fetchNews(url, fetcher);
+  if (xml.length > 1_000_000) throw new Error("NEWS_RESPONSE_TOO_LARGE");
+  const articles = [];
+  for (const match of xml.matchAll(/<item>([\s\S]*?)<\/item>/gi)) {
+    if (articles.length >= maxResults) break;
+    const title = xmlTag(match[1], "title");
+    const articleUrl = xmlTag(match[1], "link");
+    const publishedAt = xmlTag(match[1], "pubDate");
+    const source = xmlTag(match[1], "source");
+    let parsedUrl;
+    try { parsedUrl = new URL(articleUrl); } catch { continue; }
+    if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "news.google.com" || !title || !publishedAt || !source) continue;
+    articles.push({ title: title.slice(0, 300), url: parsedUrl.toString(), published_at: publishedAt, source: source.slice(0, 160) });
+  }
+  const value = {
+    query,
+    articles,
+    confidence: 1,
+    canonical: [query.toLowerCase(), ...articles.map((article) => `${article.source}|${article.published_at}|${article.title}`)].join("|"),
+    summary: `Google News RSS returned ${articles.length} matching article${articles.length === 1 ? "" : "s"}.`,
+  };
+  if (newsCache.size >= NEWS_CACHE_LIMIT) newsCache.delete(newsCache.keys().next().value);
+  newsCache.set(cacheKey, { createdAt: Date.now(), value });
+  return value;
+}
+
 export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput }) {
   const chainName = normaliseChain(chainInput);
   const txHash = normaliseHash(hashInput);
@@ -312,7 +403,7 @@ export function createServer() {
       return json(response, 200, {
         status: "ok",
         service: "verity",
-        intents: ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST"],
+        intents: ["ONCHAIN_TX_LOOKUP", "WEATHER_CHECK", "WEATHER_FORECAST", "NEWS_SEARCH"],
         revision: REVISION,
       });
     }
@@ -339,6 +430,15 @@ export function createServer() {
       } catch (error) {
         console.error("forecast_lookup_failed", { message: error instanceof Error ? error.message : "unknown" });
         return json(response, 502, { error: "UPSTREAM_UNAVAILABLE", message: "Forecast data could not be queried." });
+      }
+    }
+    if (url.pathname === "/v1/news") {
+      try {
+        const result = await lookupNews({ q: url.searchParams.get("q"), max_results: url.searchParams.get("max_results") });
+        return json(response, result.error ? 400 : 200, result);
+      } catch (error) {
+        console.error("news_lookup_failed", { message: error instanceof Error ? error.message : "unknown" });
+        return json(response, 502, { error: "UPSTREAM_UNAVAILABLE", message: "News data could not be queried." });
       }
     }
     if (url.pathname !== "/v1/lookup") return json(response, 404, { error: "NOT_FOUND" });

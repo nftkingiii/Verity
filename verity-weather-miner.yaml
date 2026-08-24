@@ -4,7 +4,7 @@ id: 9002 # Confirm availability in the integration dashboard before registration
 slug: verity-current-weather
 protocol: generic
 name: Verity Current Weather Check
-description: Deterministic current weather conditions for exact coordinates, normalized into a compact canonical payload.
+description: Current weather for coordinates or a place name, with normalized temperatures, condition, humidity, dew point, pressure, precipitation, and wind.
 base_url: https://verity-production-fcf5.up.railway.app
 
 rate_limit_per_sec: 4
@@ -17,55 +17,53 @@ endpoints:
     external_path: /v1/weather
     method: GET
     description: Read current weather conditions at a supplied latitude and longitude.
-    intents: [WEATHER_CHECK]
-    # Telegraph's validator uses this endpoint-level request contract to build
-    # its sandbox probe. input_schema alone is only catalog metadata.
-    params:
-      query:
-        required:
-          - name: latitude
-            type: number
-            intents: ["*"]
-            description: Latitude in decimal degrees (-90 to 90).
-            example: 6.5244
-          - name: longitude
-            type: number
-            intents: ["*"]
-            description: Longitude in decimal degrees (-180 to 180).
-            example: 3.3792
     param_map:
       latitude: latitude
       longitude: longitude
+      location: location
+      q: location
+      query: location
 
 input_schema:
   type: object
-  required: [latitude, longitude]
-  additionalProperties: false
+  anyOf:
+    - required: [latitude, longitude]
+    - required: [location]
+    - required: [q]
+    - required: [query]
   properties:
-    latitude: { type: string, pattern: "^-?(?:[0-8]?\\d(?:\\.\\d+)?|90(?:\\.0+)?)$" }
-    longitude: { type: string, pattern: "^-?(?:1?[0-7]?\\d(?:\\.\\d+)?|180(?:\\.0+)?)$" }
+    latitude: { type: number, minimum: -90, maximum: 90 }
+    longitude: { type: number, minimum: -180, maximum: 180 }
+    location: { type: string, minLength: 1, maxLength: 100 }
+    q: { type: string, minLength: 1, maxLength: 100 }
+    query: { type: string, minLength: 1, maxLength: 100 }
 
 output_schema:
   type: object
-  required: [latitude, longitude, observed_at, temperature_c, relative_humidity_percent, apparent_temperature_c, precipitation_mm, weather_code, wind_speed_kmh, confidence, canonical, summary]
+  required: [latitude, longitude, observed_at, temperature_c, temperature_f, condition, relative_humidity_percent, dew_point_c, pressure_hpa, precipitation_mm, wind_speed_kmh, confidence, answer, canonical, summary]
   properties:
     latitude: { type: string }
     longitude: { type: string }
     observed_at: { type: string }
     temperature_c: { type: number }
+    temperature_f: { type: number }
+    condition: { type: string }
     relative_humidity_percent: { type: number }
     apparent_temperature_c: { type: number }
+    dew_point_c: { type: number }
+    pressure_hpa: { type: number }
     precipitation_mm: { type: number }
     weather_code: { type: number }
     wind_speed_kmh: { type: number }
     confidence: { type: number, minimum: 0, maximum: 1 }
+    answer: { type: string }
     canonical: { type: string }
     summary: { type: string }
 
 semantics:
   signal_mapping:
     confidence_field: confidence
-    label_field: canonical
+    label_field: answer
     reason_field: summary
   supported_intents:
     - WEATHER_CHECK

@@ -4,6 +4,8 @@
 use core::panic::PanicInfo;
 
 const HEAP_SIZE: usize = 1024 * 1024;
+const MAX_GENERIC_BYTES: usize = 64 * 1024;
+const MAX_GENERIC_TOKENS: usize = 512;
 static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 static mut HEAP_OFFSET: usize = 0;
 
@@ -60,6 +62,40 @@ fn is_valid_payload(value: &str) -> bool {
     value.split('|').count() == 7
 }
 
+fn next_token(value: &str, mut cursor: usize) -> Option<(&str, usize)> {
+    let bytes = value.as_bytes();
+    while cursor < bytes.len() && !bytes[cursor].is_ascii_alphanumeric() { cursor += 1; }
+    let start = cursor;
+    while cursor < bytes.len() && bytes[cursor].is_ascii_alphanumeric() { cursor += 1; }
+    (start < cursor).then_some((&value[start..cursor], cursor))
+}
+
+fn generic_score(ground_truth: &str, miner_answer: &str) -> f32 {
+    if ground_truth.len() > MAX_GENERIC_BYTES || miner_answer.len() > MAX_GENERIC_BYTES { return 0.0; }
+    let mut expected_count = 0;
+    let mut matches = 0;
+    let mut cursor = 0;
+    while let Some((token, next)) = next_token(ground_truth, cursor) {
+        cursor = next;
+        expected_count += 1;
+        if expected_count > MAX_GENERIC_TOKENS { expected_count = MAX_GENERIC_TOKENS; break; }
+        if token.len() < 2 { continue; }
+        let mut answer_cursor = 0;
+        while let Some((candidate, answer_next)) = next_token(miner_answer, answer_cursor) {
+            answer_cursor = answer_next;
+            if token.eq_ignore_ascii_case(candidate) { matches += 1; break; }
+        }
+    }
+    let mut answer_count = 0;
+    cursor = 0;
+    while let Some((_, next)) = next_token(miner_answer, cursor) {
+        cursor = next;
+        answer_count += 1;
+        if answer_count > MAX_GENERIC_TOKENS { answer_count = MAX_GENERIC_TOKENS; break; }
+    }
+    if expected_count == 0 || answer_count == 0 { 0.0 } else { (2 * matches) as f32 / (expected_count + answer_count) as f32 }
+}
+
 fn score(ground_truth: &str, miner_answer: &str) -> f32 {
     if ground_truth.trim().is_empty() || miner_answer.trim().is_empty() {
         return 0.0;
@@ -72,7 +108,9 @@ fn score(ground_truth: &str, miner_answer: &str) -> f32 {
     // miner's canonical transaction payload. Those must still be safe to
     // score: exact equality wins, while unrelated free-form values score zero.
     if !is_valid_payload(ground_truth) || !is_valid_payload(miner_answer) {
-        return 0.0;
+        return if !ground_truth.contains('|') && !miner_answer.contains('|') {
+            generic_score(ground_truth, miner_answer)
+        } else { 0.0 };
     }
 
     // The transaction hash and final status carry most of the verdict. All other
@@ -124,7 +162,8 @@ mod tests {
     #[test]
     fn generic_structural_self_match_scores_perfectly() {
         assert_eq!(score("structural fixture", "structural fixture"), 1.0);
-        assert_eq!(score("structural fixture", "unrelated fixture"), 0.0);
+        assert_eq!(score("structural fixture", "unrelated fixture"), 0.5);
+        assert!(score("transaction confirmed success from alice value 1 ether", "confirmed success value 1 ether from alice") > 0.7);
     }
 
     #[test]

@@ -4,7 +4,7 @@ id: 9001 # Confirm availability in the integration dashboard before registration
 slug: verity-onchain-lookup
 protocol: generic
 name: Verity On-Chain Transaction Lookup
-description: Deterministic EVM transaction lookups with a compact canonical payload for ground-truth evaluation.
+description: Archive-capable EVM transaction lookup with RPC fallback, value, execution status, method selector, fees, and evidence.
 base_url: https://verity-production-fcf5.up.railway.app
 
 rate_limit_per_sec: 8
@@ -20,11 +20,18 @@ endpoints:
     param_map:
       chain: chain
       tx_hash: tx_hash
+      hash: tx_hash
+      txHash: tx_hash
+      query: tx_hash
 
 input_schema:
   type: object
-  required: [chain, tx_hash]
-  additionalProperties: false
+  required: [chain]
+  anyOf:
+    - required: [tx_hash]
+    - required: [hash]
+    - required: [txHash]
+    - required: [query]
   properties:
     chain:
       type: string
@@ -32,10 +39,13 @@ input_schema:
     tx_hash:
       type: string
       pattern: "^0x[0-9a-fA-F]{64}$"
+    hash: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
+    txHash: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
+    query: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
 
 output_schema:
   type: object
-  required: [chain, chain_id, tx_hash, status, confidence, canonical, summary]
+  required: [chain, chain_id, tx_hash, status, confidence, answer, canonical, summary]
   properties:
     chain: { type: string }
     chain_id: { type: integer }
@@ -45,6 +55,13 @@ output_schema:
     from: { type: string }
     to: { type: string }
     value_wei: { type: string }
+    value_eth: { type: [string, "null"] }
+    method_selector: { type: [string, "null"] }
+    transaction_type: { type: string }
+    gas_used: { type: [string, "null"] }
+    transaction_fee_wei: { type: [string, "null"] }
+    transaction_fee_eth: { type: [string, "null"] }
+    answer: { type: string }
     confidence: { type: number, minimum: 0, maximum: 1 }
     canonical: { type: string }
     summary: { type: string }
@@ -52,7 +69,7 @@ output_schema:
 semantics:
   signal_mapping:
     confidence_field: confidence
-    label_field: canonical
+    label_field: answer
     reason_field: summary
   supported_intents:
     - ONCHAIN_TX_LOOKUP

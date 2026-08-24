@@ -4,8 +4,8 @@
 use core::panic::PanicInfo;
 
 const HEAP_SIZE: usize = 1024 * 1024;
-const MAX_GENERIC_BYTES: usize = 8 * 1024;
-const MAX_GENERIC_TOKENS: usize = 64;
+const MAX_GENERIC_BYTES: usize = 64 * 1024;
+const MAX_GENERIC_TOKENS: usize = 512;
 static mut HEAP: [u8; HEAP_SIZE] = [0; HEAP_SIZE];
 static mut HEAP_OFFSET: usize = 0;
 
@@ -99,6 +99,32 @@ fn valid_payload(value: &str) -> bool {
     true
 }
 
+fn close(expected: &str, actual: &str, tolerance: f32) -> bool {
+    match (expected.parse::<f32>(), actual.parse::<f32>()) {
+        (Ok(a), Ok(b)) => (a - b).abs() <= tolerance,
+        _ => false,
+    }
+}
+
+fn day_field(value: &str, index: usize) -> Option<&str> { value.split(',').nth(index) }
+
+fn day_score(expected: &str, actual: &str) -> f32 {
+    let weights = [0.25_f32, 0.15, 0.20, 0.20, 0.10, 0.10];
+    let tolerances = [0.0_f32, 0.0, 2.0, 2.0, 20.0, 8.0];
+    let mut total = 0.0;
+    let mut index = 0;
+    while index < 6 {
+        let matched = match (day_field(expected, index), day_field(actual, index)) {
+            (Some(a), Some(b)) if index == 0 || index == 1 => a.eq_ignore_ascii_case(b),
+            (Some(a), Some(b)) => close(a, b, tolerances[index]),
+            _ => false,
+        };
+        if matched { total += weights[index]; }
+        index += 1;
+    }
+    total
+}
+
 fn next_token(value: &str, mut cursor: usize) -> Option<(&str, usize)> {
     let bytes = value.as_bytes();
     while cursor < bytes.len() && !bytes[cursor].is_ascii_alphanumeric() { cursor += 1; }
@@ -115,7 +141,7 @@ fn generic_score(ground_truth: &str, miner_answer: &str) -> f32 {
     while let Some((token, next)) = next_token(ground_truth, cursor) {
         cursor = next;
         expected_count += 1;
-        if expected_count > MAX_GENERIC_TOKENS { return 0.0; }
+        if expected_count > MAX_GENERIC_TOKENS { expected_count = MAX_GENERIC_TOKENS; break; }
         if token.len() < 2 { continue; }
         let mut answer_cursor = 0;
         while let Some((candidate, answer_next)) = next_token(miner_answer, answer_cursor) {
@@ -128,7 +154,7 @@ fn generic_score(ground_truth: &str, miner_answer: &str) -> f32 {
     while let Some((_, next)) = next_token(miner_answer, cursor) {
         cursor = next;
         answer_count += 1;
-        if answer_count > MAX_GENERIC_TOKENS { return 0.0; }
+        if answer_count > MAX_GENERIC_TOKENS { answer_count = MAX_GENERIC_TOKENS; break; }
     }
     if expected_count == 0 || answer_count == 0 { 0.0 } else { (2 * matches) as f32 / (expected_count + answer_count) as f32 }
 }
@@ -160,8 +186,8 @@ fn score(ground_truth: &str, miner_answer: &str) -> f32 {
     let daily_weight = 0.70 / expected_days as f32;
     let mut index = 0;
     while index < expected_days {
-        if field(ground_truth, index + 3) == field(miner_answer, index + 3) {
-            total += daily_weight;
+        if let (Some(expected), Some(actual)) = (field(ground_truth, index + 3), field(miner_answer, index + 3)) {
+            total += daily_weight * day_score(expected, actual);
         }
         index += 1;
     }
@@ -209,7 +235,7 @@ mod tests {
     #[test]
     fn forged_day_loses_its_daily_weight() {
         let forged = "6.5244|3.3792|3|2026-08-16,80,26.9,24.6,100,17.1|2026-08-17,53,99,24.5,82,15.9|2026-08-18,80,28.1,24,71,13.6";
-        assert!((score(TRUTH, forged) - 0.766_666_65).abs() < 0.000_1);
+        assert!(score(TRUTH, forged) > 0.8 && score(TRUTH, forged) < 1.0);
     }
 
     #[test]

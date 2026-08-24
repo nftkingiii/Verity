@@ -4,7 +4,7 @@ id: 9004 # Confirm availability in the integration dashboard before registration
 slug: verity-news-search
 protocol: generic
 name: Verity News Search
-description: Deterministic current-news search with source and publication-time provenance from a fixed Google News RSS feed.
+description: Filterable current-news search with recency, locale, excluded-domain controls, article descriptions, and source/time provenance.
 base_url: https://verity-production-fcf5.up.railway.app
 
 rate_limit_per_sec: 1
@@ -17,56 +17,65 @@ endpoints:
     external_path: /v1/news
     method: GET
     description: Search current news by query and return normalized source-backed article results.
-    intents: [NEWS_SEARCH]
-    params:
-      query:
-        required:
-          - name: q
-            type: string
-            intents: ["*"]
-            description: News topic or search terms (up to 120 characters).
-            example: central bank interest rates
-        optional:
-          - name: max_results
-            type: integer
-            intents: ["*"]
-            description: Number of results from 1 to 10; defaults to 5.
-            example: 5
     param_map:
       q: q
+      query: q
       max_results: max_results
+      max: max_results
+      recent_days: recent_days
+      exclude_domains: exclude_domains
+      country: country
+      language: language
+      lang: language
+      category: category
+      from: from
+      to: to
 
 input_schema:
   type: object
-  required: [q]
-  additionalProperties: false
+  anyOf:
+    - required: [q]
+    - required: [query]
   properties:
     q: { type: string, minLength: 1, maxLength: 120 }
-    max_results: { type: string, pattern: "^(?:[1-9]|10)$" }
+    query: { type: string, minLength: 1, maxLength: 120 }
+    max_results: { type: integer, minimum: 1, maximum: 10 }
+    max: { type: integer, minimum: 1, maximum: 10 }
+    recent_days: { type: integer, minimum: 1, maximum: 30 }
+    exclude_domains: { type: string, maxLength: 300 }
+    country: { type: string, pattern: "^[A-Za-z]{2}$" }
+    language: { type: string, pattern: "^[A-Za-z]{2,3}$" }
+    lang: { type: string, pattern: "^[A-Za-z]{2,3}$" }
+    category: { type: string, minLength: 1, maxLength: 40 }
+    from: { type: string, format: date }
+    to: { type: string, format: date }
 
 output_schema:
   type: object
-  required: [query, articles, confidence, canonical, summary]
+  required: [query, filters, articles, confidence, answer, canonical, summary]
   properties:
     query: { type: string }
     articles:
       type: array
       items:
         type: object
-        required: [title, url, published_at, source]
+        required: [title, url, published_at, source, description]
         properties:
           title: { type: string }
           url: { type: string }
           published_at: { type: string }
           source: { type: string }
+          description: { type: string }
+    filters: { type: object }
     confidence: { type: number, minimum: 0, maximum: 1 }
+    answer: { type: string }
     canonical: { type: string }
     summary: { type: string }
 
 semantics:
   signal_mapping:
     confidence_field: confidence
-    label_field: canonical
+    label_field: answer
     reason_field: summary
   supported_intents:
     - NEWS_SEARCH

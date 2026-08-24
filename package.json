@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node miner/server.mjs",
-    "test": "node --test miner/server.test.mjs"
+    "test": "node --test miner/server.test.mjs",
+    "backtest:scorers": "node scripts/backtest-scorers.mjs"
   },
   "engines": {
     "node": ">=20"

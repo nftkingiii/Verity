@@ -1,11 +1,11 @@
 # Verity
 
-Verity is a deterministic `ONCHAIN_TX_LOOKUP` Miner, `WEATHER_CHECK` Miner, `WEATHER_FORECAST` Miner, `NEWS_SEARCH` Miner, and paired WebAssembly scoring module for Telegraph.
+Verity is a four-intent Telegraph miner suite with stateless WebAssembly scorers for `ONCHAIN_TX_LOOKUP`, `WEATHER_CHECK`, `WEATHER_FORECAST`, and `NEWS_SEARCH`.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
 **Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.3/verity_scorer.wasm
 
-It accepts an EVM chain plus transaction hash, fetches the transaction and receipt from a fixed allowlist of RPC providers, and returns a compact canonical payload:
+The on-chain miner accepts an EVM chain plus transaction hash, checks archive-capable RPC providers with fallback, and returns both a direct answer and canonical evidence:
 
 ```text
 chain|tx_hash|status|block_number|from|to|value_wei
@@ -22,19 +22,19 @@ npm start
 curl "http://localhost:8080/health"
 ```
 
-For production, configure dedicated RPC URLs in the environment. Public defaults are suitable only for local proving; leaderboard reliability needs provider-backed endpoints and monitoring.
+For production, set a comma-separated `RPC_ETHEREUM_URLS` list (or the legacy single `RPC_ETHEREUM_URL`) with a dedicated archive-capable endpoint first. The public defaults provide independent fallback but are not an uptime guarantee.
 
 ### Weather miner
 
-`GET /v1/weather?latitude=6.5244&longitude=3.3792` validates bounded coordinates and queries only the fixed Open-Meteo HTTPS host. It returns timestamped current conditions and a canonical payload. The configuration is in `verity-weather-miner.yaml`; it is built and tested locally but deliberately not registered until the evaluator's replacement status is confirmed.
+`GET /v1/weather?location=Lagos` (or exact `latitude`/`longitude`) returns timestamped current conditions, C/F temperatures, condition, humidity, dew point, pressure, precipitation, wind, and canonical evidence from fixed Open-Meteo hosts.
 
 ### Weather Forecast miner
 
-`GET /v1/forecast?latitude=6.5244&longitude=3.3792&forecast_days=3` returns one to seven UTC daily forecasts and a canonical payload. It uses the same fixed Open-Meteo host, strictly bounds coordinates and horizon, and never accepts a caller-supplied URL. Its standalone Telegraph configuration is `verity-weather-forecast-miner.yaml`.
+`GET /v1/forecast?location=Tokyo&forecast_days=7` (or exact coordinates) returns one to seven location-timezone daily forecasts plus up to 168 hourly temperature, dew-point, precipitation, condition, and wind observations. It never accepts a caller-supplied URL.
 
 ### News Search miner
 
-`GET /v1/news?q=central+bank+interest+rates&max_results=5` queries a fixed Google News RSS host and returns up to ten normalized articles with source and publication-time provenance. It does not fetch returned article URLs. The standalone Telegraph configuration is `verity-news-search-miner.yaml`.
+`GET /v1/news?q=US+technology&max_results=5&recent_days=3&exclude_domains=techcrunch.com,theverge.com` queries a fixed Google News RSS host. It supports locale, recency, result-count, and domain-exclusion controls; returns descriptions with source/time provenance; and serves bounded stale cache data during brief upstream failures. It does not fetch returned article URLs.
 
 ## Telegraph configuration
 
@@ -44,10 +44,6 @@ For production, configure dedicated RPC URLs in the environment. Public defaults
 supported_intents:
   - ONCHAIN_TX_LOOKUP
 ```
-
-Before dashboard registration, confirm:
-
-- `id: 9001` if the dashboard reports it as unavailable;
 
 Upload exactly the bytes you hash. The dashboard sandbox-tests the endpoint, pins the YAML, and registers the Miner. Do not put a private key, provider secret, or raw API key in the YAML.
 
@@ -64,14 +60,14 @@ cargo build --release --target wasm32-unknown-unknown
 
 Register the resulting `scorer/target/wasm32-unknown-unknown/release/verity_scorer.wasm` through the integration dashboard after hosting it at a durable public URL.
 
-The verified v0.1.3 scorer binary is already available from the GitHub Release linked above.
+Build and validate a fresh binary from the current source before replacing any registered scorer; the older v0.1.3 release predates the heterogeneous-answer improvements.
 
 ### Weather Forecast evaluator
 
 `weather-forecast-scorer` is a separate, stateless evaluator for
-`WEATHER_FORECAST`. It scores Verity's canonical forecast format by matching
-the requested coordinates, forecast horizon, and each complete daily record.
-It intentionally gives no partial credit to malformed payloads and exports
+`WEATHER_FORECAST`. It scores canonical forecasts with per-field tolerances
+and uses a bounded format-agnostic fallback for heterogeneous JSON or prose
+answers. It exports
 only `alloc`, `dealloc`, and `rank_answer`.
 
 ```powershell
@@ -87,8 +83,15 @@ to a new Telegraph WASM registration for `WEATHER_FORECAST`.
 
 `weather-check-scorer` is the separate, stateless evaluator for `WEATHER_CHECK`.
 It scores coordinates, observation time, and each normalized current-condition
-measurement without allowing malformed payloads to receive partial credit.
+measurement with realistic time and numeric tolerances, plus a bounded fallback
+for heterogeneous answers.
+
+### News Search evaluator
+
+`news-search-scorer` combines bounded ground-truth agreement with question
+coverage so relevant, source-rich answers outrank unrelated or empty results.
+It is format-agnostic and exports only `alloc`, `dealloc`, and `rank_answer`.
 
 ## Status
 
-The implementation follows the public Miner YAML and WASM ABI documentation checked on 2026-08-14. It still requires live dashboard sandbox validation, a production deployment, actual Miner registration, and an end-to-end Telegraph request before any live-performance claim.
+The current revision follows the public Miner YAML and WASM ABI documentation checked on 2026-08-24. Treat local tests and direct upstream probes as pre-deployment evidence only; verify the deployed revision and every public route before updating Telegraph registrations.

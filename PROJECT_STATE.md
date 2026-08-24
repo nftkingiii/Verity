@@ -45,6 +45,8 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 3. Register scorers one at a time after a fresh public-row backtest; do not replace all scorers simultaneously.
 4. Confirm whether the current registry lost prior scorer #9 during the contract migration and obtain the supported deregistration path for rejected #11.
 
+Weather Check update registration #184 was rejected on 2026-08-24 because YAML ID `9002` is now held by active miner `txlens`. The corrected Weather Check YAML uses ID `9006`, observed unused in the live integrations catalog before publishing; resubmit through Edit promptly because the rejected registration released the Verity slug.
+
 ## Competitive audit — 2026-08-24
 
 - Verified epoch 269: On-chain #4/0.000749, Weather Check #3/0.013261, Forecast #4/0; News Search last appeared #4/0 in epoch 268.

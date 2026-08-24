@@ -1,6 +1,6 @@
 version: "1"
 kind: miner
-id: 9002 # Confirm availability in the integration dashboard before registration.
+id: 9006 # Verified unused in the active integration catalog on 2026-08-24.
 slug: verity-current-weather
 protocol: generic
 name: Verity Current Weather Check

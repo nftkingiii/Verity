@@ -72,6 +72,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - Direct upstream read-back: the failed epoch-269 Ethereum transaction resolved to the expected sender and `0.1049719 ETH`; Lagos current weather resolved; Tokyo returned seven daily and 168 hourly forecast points; filtered Google News returned five articles.
 - YAML syntax and closed endpoint-key checks passed for all four miner files; dependency audit reported zero known vulnerabilities.
 - Production `/health` reported commit `7162a904c4cf48cba2433efc4962287ebc125cae`; the exact failed on-chain request and all three other public miner workflows returned HTTP 200 with the expected richer evidence. Telegraph registration updates remain pending for the user-controlled dashboard step.
+- Scorer release `v0.2.0` publishes four hash-verified WASM assets for On-chain, Weather Check, Weather Forecast, and News Search: https://github.com/nftkingiii/Verity/releases/tag/v0.2.0. Register them one at a time, starting with On-chain, and wait for Stage 2 acceptance before continuing.
 
 ## Evidence ledger
 

@@ -3,7 +3,7 @@
 Verity is a four-intent Telegraph miner suite with stateless WebAssembly scorers for `ONCHAIN_TX_LOOKUP`, `WEATHER_CHECK`, `WEATHER_FORECAST`, and `NEWS_SEARCH`.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
-**Scoring module:** https://github.com/nftkingiii/Verity/releases/download/v0.1.3/verity_scorer.wasm
+**Scoring modules:** https://github.com/nftkingiii/Verity/releases/tag/v0.2.0
 
 The on-chain miner accepts an EVM chain plus transaction hash, checks archive-capable RPC providers with fallback, and returns both a direct answer and canonical evidence:
 

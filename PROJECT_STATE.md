@@ -26,25 +26,24 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 | Requirement | Planned implementation | Evidence | Status |
 | --- | --- | --- | --- |
 | Telegraph Miner | GET `/v1/lookup?chain=&tx_hash=` behind the public YAML mapping | Base Sepolia transaction `0x78c57b20b67c489bcf4d64b495d8c62939dc4daca67ce5dc77a4631be6db4d85`; IPFS YAML `QmTKzFcBYYuMEGvMPjv5trVqpHiaiKiuWw5HL5EtqUgyMq` | Registered; pending epoch activation |
-| Correct transaction evidence | Archive-capable multi-RPC lookup with canonical receipt, value, selector, fee, block, and chain metadata | False-null fallback regression plus exact failed epoch-269 transaction read-back | Implemented locally; deployment pending |
+| Correct transaction evidence | Archive-capable multi-RPC lookup with canonical receipt, value, selector, fee, block, and chain metadata | False-null fallback regression plus exact failed epoch-269 transaction live read-back | Deployed and verified |
 | Deterministic evaluator | Rust/WASM canonical-payload scorer, including forged-result tests | Generic self-match regression plus canonical/forged-answer tests; verify `memory`, `alloc`, `dealloc`, and `rank_answer` exports before upload | v0.1.3 built against the team's updated ABI; wait for contract deployment before registration |
 | Production availability | Railway public HTTPS service | Health/revision read-back and adversarial request | Verified |
-| Weather Check miner | GET `/v1/weather?location=` or exact coordinates, backed by fixed Open-Meteo HTTPS hosts | Local tests and direct Lagos read-back | Richer revision implemented locally; deployment pending |
-| Weather Forecast miner | GET `/v1/forecast?location=&forecast_days=` or exact coordinates, backed by fixed Open-Meteo HTTPS | Tokyo 7-day/168-hour read-back plus deterministic fixtures | Richer revision implemented locally; deployment pending |
+| Weather Check miner | GET `/v1/weather?location=` or exact coordinates, backed by fixed Open-Meteo HTTPS hosts | Local tests and live Lagos read-back | Richer revision deployed and verified |
+| Weather Forecast miner | GET `/v1/forecast?location=&forecast_days=` or exact coordinates, backed by fixed Open-Meteo HTTPS | Live Tokyo 7-day/168-hour read-back plus deterministic fixtures | Richer revision deployed and verified |
 | Weather Forecast evaluator | Stateless WASM scorer for coordinate, horizon, and complete daily-record agreement | `weather-forecast-scorer` tests plus WASM runtime read-back | Built locally; needs dashboard registration |
 | Weather Check evaluator | Stateless WASM scorer for coordinate, observation time, and current-condition agreement | `weather-check-scorer` tests plus WASM runtime read-back | Built locally; needs dashboard registration |
-| News Search miner | Filterable GET `/v1/news` backed by fixed Google News RSS HTTPS | Recency/exclusion fixture, stale-cache behavior, and direct five-result read-back | Richer revision implemented locally; deployment pending |
+| News Search miner | Filterable GET `/v1/news` backed by fixed Google News RSS HTTPS | Recency/exclusion fixture, stale-cache behavior, and live five-result read-back | Richer revision deployed and verified |
 | News Search evaluator | Stateless bounded scorer for ground-truth agreement and question coverage | Four unit tests plus WASM build/export inspection | Implemented locally; registration pending |
 | Track 3 demand | Application that uses the Miner rather than mocking it | Live integration and request ledger | Deferred until Track 3 |
 | Submission | Repository, demo, X updates, and exact proof links | Final evidence ledger | Planned |
 
 ## Immediate next actions
 
-1. Complete the ship gate, deploy the audited revision, and prove the live revision plus all four public flows.
-2. Update miner registrations one at a time in this order: On-chain, Forecast, News, Weather Check; verify each new registration before moving on.
-3. Ask Telegraph why `verity-current-weather` is visible in scores but absent from current integration catalogs.
-4. Backtest each scorer against held-out public rows and the incumbent before registering; do not replace all scorers simultaneously.
-5. Confirm whether the current registry lost prior scorer #9 during the contract migration and obtain the supported deregistration path for rejected #11.
+1. Use the dashboard's Edit/Update flow on active miners one at a time in this order: On-chain, Forecast, News, Weather Check; do not deregister first. `updateMiner` atomically replaces the old entry and creates a new registration ID and intent ID, so record and verify the new IDs before moving on.
+2. Ask Telegraph why `verity-current-weather` is visible in scores but absent from current integration catalogs.
+3. Register scorers one at a time after a fresh public-row backtest; do not replace all scorers simultaneously.
+4. Confirm whether the current registry lost prior scorer #9 during the contract migration and obtain the supported deregistration path for rejected #11.
 
 ## Competitive audit — 2026-08-24
 
@@ -72,7 +71,7 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 - Fresh Explorer-row pairwise ordering agreement: On-chain 0.7794, Weather Check 0.7333, Forecast 0.7535, News 0.6667; every minimum self-match was 1.0 and every observed empty answer scored zero.
 - Direct upstream read-back: the failed epoch-269 Ethereum transaction resolved to the expected sender and `0.1049719 ETH`; Lagos current weather resolved; Tokyo returned seven daily and 168 hourly forecast points; filtered Google News returned five articles.
 - YAML syntax and closed endpoint-key checks passed for all four miner files; dependency audit reported zero known vulnerabilities.
-- Production revision and Telegraph registration updates remain pending until the commit is deployed and the live `/health` revision plus all four public flows are read back.
+- Production `/health` reported commit `7162a904c4cf48cba2433efc4962287ebc125cae`; the exact failed on-chain request and all three other public miner workflows returned HTTP 200 with the expected richer evidence. Telegraph registration updates remain pending for the user-controlled dashboard step.
 
 ## Evidence ledger
 

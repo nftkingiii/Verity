@@ -3,7 +3,7 @@
 Verity is a four-intent Telegraph miner suite with stateless WebAssembly scorers for `ONCHAIN_TX_LOOKUP`, `WEATHER_CHECK`, `WEATHER_FORECAST`, and `NEWS_SEARCH`.
 
 **Live Miner:** https://verity-production-fcf5.up.railway.app/health
-**Scoring modules:** https://github.com/nftkingiii/Verity/releases/tag/v0.2.0
+**Scoring modules:** https://github.com/nftkingiii/Verity/releases/tag/v0.3.0
 
 The on-chain miner accepts an EVM chain plus transaction hash, checks archive-capable RPC providers with fallback, and returns both a direct answer and canonical evidence:
 
@@ -51,6 +51,18 @@ Upload exactly the bytes you hash. The dashboard sandbox-tests the endpoint, pin
 
 The scorer implements Telegraph's required WASM exports: `alloc`, `dealloc`, and `rank_answer`. It is intentionally stateless and has no network/filesystem capability.
 
+The v0.3 scorers add a transparent calibration and factual-contradiction layer
+to commit-pinned, MIT-licensed semantic modules from
+`telegraph-salience-scorer`. The wrapper preserves semantic ordering, widens
+good/bad separation, and penalizes decisive status, direction, rain, and
+numeric contradictions. Exact upstream provenance and SHA-256 hashes are in
+`artifacts/v0.3.0/manifest.json`; licensing is in `THIRD_PARTY_NOTICES.md`.
+
+```powershell
+npm run build:calibrated-scorers
+npm run test:calibrated-scorers
+```
+
 ```bash
 cd scorer
 rustup target add wasm32-unknown-unknown
@@ -94,4 +106,4 @@ It is format-agnostic and exports only `alloc`, `dealloc`, and `rank_answer`.
 
 ## Status
 
-The current revision follows the public Miner YAML and WASM ABI documentation checked on 2026-08-24. Treat local tests and direct upstream probes as pre-deployment evidence only; verify the deployed revision and every public route before updating Telegraph registrations.
+The current revision follows the public Miner YAML and WASM ABI documentation checked on 2026-08-30. Telegraph's public score-history endpoint no longer exposes question, ground-truth, or answer fields, so `npm run backtest:scorers` now fails closed instead of reporting meaningless agreement. Local adversarial results are pre-registration evidence only; Stage 2 dashboard acceptance remains the authoritative gate.

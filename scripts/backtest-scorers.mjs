@@ -4,10 +4,10 @@ import path from "node:path";
 const API = "https://explorer.telegraphprotocol.com/api/scores";
 const wasmRoot = process.env.WASM_DIR ?? path.resolve("target", "wasm32-unknown-unknown", "release");
 const modules = {
-  ONCHAIN_TX_LOOKUP: "verity_scorer.wasm",
-  WEATHER_CHECK: "verity_weather_check_scorer.wasm",
-  WEATHER_FORECAST: "verity_weather_forecast_scorer.wasm",
-  NEWS_SEARCH: "verity_news_search_scorer.wasm",
+  ONCHAIN_TX_LOOKUP: ["verity-onchain-scorer.wasm", "verity_scorer.wasm"],
+  WEATHER_CHECK: ["verity-weather-check-scorer.wasm", "verity_weather_check_scorer.wasm"],
+  WEATHER_FORECAST: ["verity-weather-forecast-scorer.wasm", "verity_weather_forecast_scorer.wasm"],
+  NEWS_SEARCH: ["verity-news-search-scorer.wasm", "verity_news_search_scorer.wasm"],
 };
 
 function scoreWith(module, question, groundTruth, answer) {
@@ -30,14 +30,17 @@ function deviation(values) {
   return Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length);
 }
 
-for (const [intent, filename] of Object.entries(modules)) {
-  const file = path.join(wasmRoot, filename);
+for (const [intent, filenames] of Object.entries(modules)) {
+  const file = filenames.map((filename) => path.join(wasmRoot, filename)).find(fs.existsSync);
   if (!fs.existsSync(file)) throw new Error(`Missing ${file}; build the release WASMs or set WASM_DIR.`);
   const module = new WebAssembly.Module(fs.readFileSync(file));
   const response = await fetch(`${API}?intent=${intent}`);
   if (!response.ok) throw new Error(`${intent} score fetch failed: HTTP ${response.status}`);
   const body = await response.json();
   const rows = Array.isArray(body) ? body : body.data ?? body.scores ?? [];
+  if (rows.length && !("question" in rows[0] && "ground_truth" in rows[0] && "miner_answer" in rows[0])) {
+    throw new Error(`${intent}: Telegraph's public score history no longer exposes question/ground_truth/miner_answer; refusing to report a meaningless backtest.`);
+  }
   const evaluated = rows.map((row) => ({
     ...row,
     candidate_score: scoreWith(module, row.question, row.ground_truth, row.miner_answer),

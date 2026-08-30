@@ -4,5 +4,7 @@ scorer/target/
 weather-forecast-scorer/target/
 weather-check-scorer/target/
 news-search-scorer/target/
+calibrated-scorer/target/
 *.wasm
 !scorer/dist/.gitkeep
+.verity-cache/

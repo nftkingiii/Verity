@@ -7,9 +7,14 @@
   "scripts": {
     "start": "node miner/server.mjs",
     "test": "node --test miner/server.test.mjs",
-    "backtest:scorers": "node scripts/backtest-scorers.mjs"
+    "backtest:scorers": "node scripts/backtest-scorers.mjs",
+    "build:calibrated-scorers": "node scripts/build-calibrated-scorers.mjs",
+    "test:calibrated-scorers": "node scripts/test-calibrated-scorers.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "binaryen": "^132.0.0"
   }
 }

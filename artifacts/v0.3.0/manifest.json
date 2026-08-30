@@ -1,0 +1,118 @@
+{
+  "ONCHAIN_TX_LOOKUP": {
+    "file": "verity-onchain-scorer.wasm",
+    "bytes": 23995864,
+    "sha256": "e158a78c01b0b59d7b0f855f02a668babdcaea4d568411cb7cd8a5eb15ca3480",
+    "upstream": "https://raw.githubusercontent.com/zkasuran/telegraph-salience-scorer/92167ea85229156e2e761afa36a6b50fcc9fedfa/dist/xfmr/otx_t74.wasm",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "TELEGRAPH_INTENT",
+        "kind": "global"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      }
+    ]
+  },
+  "WEATHER_CHECK": {
+    "file": "verity-weather-check-scorer.wasm",
+    "bytes": 28995564,
+    "sha256": "2a072ca2fc70c3e04a312a60ac1532eb69c8a39975ec24ad80cc3c5d9f7d3a26",
+    "upstream": "https://raw.githubusercontent.com/zkasuran/telegraph-salience-scorer/d734f291817596332ec23e1ef9b6b67fc32631ef/dist/xfmr/wchk_tol45.wasm",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "TELEGRAPH_INTENT",
+        "kind": "global"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      }
+    ]
+  },
+  "WEATHER_FORECAST": {
+    "file": "verity-weather-forecast-scorer.wasm",
+    "bytes": 23995864,
+    "sha256": "60ee9ac678ec8ab3c375225d00e7a7f1e5f50d706228c6564420cc4072cfc241",
+    "upstream": "https://raw.githubusercontent.com/zkasuran/telegraph-salience-scorer/f009d2d778bd49611dcc0a7e3819a8dca74d1aad/dist/xfmr/wf_mini.wasm",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "TELEGRAPH_INTENT",
+        "kind": "global"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      }
+    ]
+  },
+  "NEWS_SEARCH": {
+    "file": "verity-news-search-scorer.wasm",
+    "bytes": 23993325,
+    "sha256": "cfa38744cfac95cfc3206bcaff15cac8bd9353f9c579ce07503a247fd0c7a03b",
+    "upstream": "https://raw.githubusercontent.com/zkasuran/telegraph-salience-scorer/c88cc06ec3d03e6b9367a3c39908d92798626fa2/dist/xfmr/news_q40s.wasm",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "TELEGRAPH_INTENT",
+        "kind": "global"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      }
+    ]
+  }
+}

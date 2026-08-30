@@ -40,10 +40,10 @@ Compete in Telegraph Hackathon Season I with a high-reliability `ONCHAIN_TX_LOOK
 
 ## Immediate next actions
 
-1. Use the dashboard's Edit/Update flow on active miners one at a time in this order: On-chain, Forecast, News, Weather Check; do not deregister first. `updateMiner` atomically replaces the old entry and creates a new registration ID and intent ID, so record and verify the new IDs before moving on.
-2. Ask Telegraph why `verity-current-weather` is visible in scores but absent from current integration catalogs.
-3. Register scorers one at a time after a fresh public-row backtest; do not replace all scorers simultaneously.
-4. Confirm whether the current registry lost prior scorer #9 during the contract migration and obtain the supported deregistration path for rejected #11.
+1. Publish scorer release `v0.3.0` from the verified artifacts.
+2. Register only the new On-chain scorer first and wait for Stage 2 acceptance.
+3. If accepted, register Forecast, News, and Weather Check one at a time; record each registration ID and rejection/acceptance metrics before proceeding.
+4. Deregister rejected v0.2 registrations only through the dashboard's supported flow; do not touch active miners.
 
 Weather Check update registration #184 was rejected on 2026-08-24 because YAML ID `9002` is now held by active miner `txlens`. The corrected Weather Check YAML uses ID `9006`, observed unused in the live integrations catalog before publishing; resubmit through Edit promptly because the rejected registration released the Verity slug.
 
@@ -75,6 +75,14 @@ Weather Check update registration #184 was rejected on 2026-08-24 because YAML I
 - YAML syntax and closed endpoint-key checks passed for all four miner files; dependency audit reported zero known vulnerabilities.
 - Production `/health` reported commit `7162a904c4cf48cba2433efc4962287ebc125cae`; the exact failed on-chain request and all three other public miner workflows returned HTTP 200 with the expected richer evidence. Telegraph registration updates remain pending for the user-controlled dashboard step.
 - Scorer release `v0.2.0` publishes four hash-verified WASM assets for On-chain, Weather Check, Weather Forecast, and News Search: https://github.com/nftkingiii/Verity/releases/tag/v0.2.0. Register them one at a time, starting with On-chain, and wait for Stage 2 acceptance before continuing.
+
+## Calibrated scorer remediation — 2026-08-30
+
+- Registrations #665–#668 were rejected: On-chain 11/12 ordering, Forecast 13/15 ordering, Weather Check 0.2853 separation versus 0.9828, and News 26/32 ordering.
+- Live Explorer read-back confirmed current champions #642/#510/#636/#330 and their commit-pinned semantic binaries.
+- v0.3 wraps those MIT-licensed semantic modules with an original monotonic calibration and factual guard for polarity, direction, rain, and numeric contradictions; provenance and license notices are public.
+- Fresh verification: miner tests 13/13, wrapper unit tests 3/3, adversarial scorer contrasts 12/12, minimum self-match 0.9999, zero WASM imports, and zero high/critical npm vulnerabilities.
+- The public `/api/scores` response now omits question, ground-truth, and miner-answer data. Historical pairwise backtesting is therefore unavailable; the harness fails closed and Stage 2 remains unverified until dashboard registration.
 
 ## Evidence ledger
 

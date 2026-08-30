@@ -4,7 +4,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 const root = path.resolve(import.meta.dirname, "..");
-const release = path.join(root, "artifacts", "v0.3.1");
+const version = process.env.SCORER_VERSION ?? "v0.3.1";
+const release = path.join(root, "artifacts", version);
 const modules = [
   ["ONCHAIN_TX_LOOKUP", "scorer", "verity_scorer.wasm", "verity-onchain-scorer.wasm"],
   ["WEATHER_CHECK", "weather-check-scorer", "verity_weather_check_scorer.wasm", "verity-weather-check-scorer.wasm"],

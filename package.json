@@ -9,7 +9,9 @@
     "test": "node --test miner/server.test.mjs",
     "backtest:scorers": "node scripts/backtest-scorers.mjs",
     "build:calibrated-scorers": "node scripts/build-calibrated-scorers.mjs",
-    "test:calibrated-scorers": "node scripts/test-calibrated-scorers.mjs"
+    "test:calibrated-scorers": "node scripts/test-calibrated-scorers.mjs",
+    "build:fast-scorers": "node scripts/build-fast-scorers.mjs",
+    "test:fast-scorers": "node scripts/test-fast-scorers.mjs"
   },
   "engines": {
     "node": ">=20"

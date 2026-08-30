@@ -51,16 +51,17 @@ Upload exactly the bytes you hash. The dashboard sandbox-tests the endpoint, pin
 
 The scorer implements Telegraph's required WASM exports: `alloc`, `dealloc`, and `rank_answer`. It is intentionally stateless and has no network/filesystem capability.
 
-The v0.3 scorers add a transparent calibration and factual-contradiction layer
-to commit-pinned, MIT-licensed semantic modules from
-`telegraph-salience-scorer`. The wrapper preserves semantic ordering, widens
-good/bad separation, and penalizes decisive status, direction, rain, and
-numeric contradictions. Exact upstream provenance and SHA-256 hashes are in
-`artifacts/v0.3.0/manifest.json`; licensing is in `THIRD_PARTY_NOTICES.md`.
+The v0.3 release used a calibration wrapper around large semantic modules and
+was rejected by the validator for exceeding its fixture time budget. The
+replacement v0.3.1 release uses the compact native scorers in this repository:
+bounded deterministic parsing, no imports, no network, and no embedded model.
+Build and runtime evidence is recorded in `artifacts/v0.3.1/manifest.json`.
 
 ```powershell
 npm run build:calibrated-scorers
 npm run test:calibrated-scorers
+npm run build:fast-scorers
+npm run test:fast-scorers
 ```
 
 ```bash

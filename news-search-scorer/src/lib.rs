@@ -162,17 +162,36 @@ fn numeric_recall(ground_truth: &str, miner_answer: &str) -> Option<f32> {
     (total > 0).then_some(matched as f32 / total as f32)
 }
 
-fn score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
+fn calibrate(raw: f32) -> f32 {
+    if raw <= 0.45 {
+        raw * 0.02
+    } else if raw >= 0.55 {
+        0.991 + ((raw - 0.55) / 0.45) * 0.009
+    } else {
+        0.009 + ((raw - 0.45) / 0.10) * 0.982
+    }
+}
+
+fn raw_score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
     if ground_truth.trim().is_empty() || miner_answer.trim().is_empty() || ground_truth.len() > MAX_BYTES || miner_answer.len() > MAX_BYTES { return 0.0; }
     if ground_truth == miner_answer { return 1.0; }
     let lexical = dice(ground_truth, miner_answer);
     let coverage = question_coverage(question, miner_answer);
-    let mut result = match numeric_recall(ground_truth, miner_answer) {
+    let numbers = numeric_recall(ground_truth, miner_answer);
+    let mut result = match numbers {
         Some(numbers) => 0.72 * lexical + 0.13 * coverage + 0.15 * numbers,
         None => 0.85 * lexical + 0.15 * coverage,
     };
+    if let Some(recall) = numbers {
+        if recall < 1.0 { result *= 0.02 + 0.18 * recall; }
+    }
     if contradiction(ground_truth, miner_answer) { result *= 0.02; }
     result.min(1.0)
+}
+
+fn score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
+    let raw = raw_score(question, ground_truth, miner_answer);
+    if raw >= 1.0 { 1.0 } else { calibrate(raw) }
 }
 
 #[unsafe(no_mangle)]
@@ -222,6 +241,17 @@ mod tests {
         let good = "NVIDIA Q3 2026 revenue was 46 billion dollars";
         let bad = "NVIDIA reported revenue of 4 billion dollars in Q3 2024";
         assert!(score("NVIDIA revenue", truth, good) > score("NVIDIA revenue", truth, bad));
+    }
+
+    #[test]
+    fn clear_news_answers_have_champion_level_separation() {
+        let cases = [
+            ("Bitcoin ETF flows", "Bitcoin ETFs recorded 420 million dollars of net inflows", "Bitcoin funds gained 420 million dollars in net inflows", "Bitcoin ETFs recorded 420 million dollars of net outflows"),
+            ("NVIDIA revenue", "NVIDIA reported Q3 revenue of 46 billion dollars", "NVIDIA Q3 revenue was 46 billion dollars", "NVIDIA reported Q3 revenue of 4 billion dollars"),
+            ("OpenAI launch", "OpenAI released Model X on August 29", "OpenAI launched Model X on August 29", "A football club released a shirt in 2024"),
+        ];
+        let average_margin = cases.iter().map(|(question, truth, good, bad)| score(question, truth, good) - score(question, truth, bad)).sum::<f32>() / cases.len() as f32;
+        assert!(average_margin > 0.85, "average margin was {average_margin}");
     }
 
     #[test]

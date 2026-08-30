@@ -104,6 +104,23 @@ test("transaction lookup falls back when one RPC returns a false null", async ()
   assert.match(result.answer, /1 ETH/);
 });
 
+test("transaction lookup extracts a hash and chain from a natural-language question", async () => {
+  const result = await lookupTransaction(
+    { question: `Was Ethereum transaction ${HASH} successful?` },
+    async (_url, options) => {
+      const request = JSON.parse(options.body);
+      return { ok: true, json: async () => ({ jsonrpc: "2.0", id: 1, result: request.method === "eth_getTransactionByHash" ? {
+        hash: HASH, blockNumber: "0x10", from: `0x${"1".repeat(40)}`, to: `0x${"2".repeat(40)}`,
+        value: "0x0", input: "0x", gas: "0x5208", gasPrice: "0x3b9aca00",
+      } : { blockNumber: "0x10", status: "0x1", gasUsed: "0x5208", effectiveGasPrice: "0x3b9aca00", logs: [] } }) };
+    },
+    ["https://rpc.invalid"],
+  );
+  assert.equal(result.chain, "ethereum");
+  assert.equal(result.tx_hash, HASH);
+  assert.match(result.answer, /^confirmed success;/);
+});
+
 test("forecast rejects an excessive horizon before the upstream request", async () => {
   let called = false;
   const result = await lookupForecast(
@@ -133,6 +150,7 @@ test("forecast returns a stable canonical daily payload", async () => {
   assert.equal(result.days.length, 2);
   assert.equal(result.hourly.length, 2);
   assert.match(result.answer, /2026-08-17/);
+  assert.doesNotMatch(result.answer, /Hourly:/);
 });
 
 test("forecast resolves a place name and requests hourly coverage", async () => {
@@ -156,6 +174,25 @@ test("forecast resolves a place name and requests hourly coverage", async () => 
   assert.equal(result.timezone, "Asia/Tokyo");
 });
 
+test("forecast extracts place and horizon from a natural-language question", async () => {
+  const result = await lookupForecast(
+    { question: "What is the weather forecast for Tokyo tomorrow?" },
+    async (url) => {
+      if (url.hostname === "geocoding-api.open-meteo.com") {
+        assert.equal(url.searchParams.get("name"), "Tokyo");
+        return { ok: true, json: async () => ({ results: [{ name: "Tokyo", country: "Japan", latitude: 35.6762, longitude: 139.6503, timezone: "Asia/Tokyo" }] }) };
+      }
+      assert.equal(url.searchParams.get("forecast_days"), "1");
+      return { ok: true, json: async () => ({ timezone: "Asia/Tokyo", daily: {
+        time: ["2026-08-31"], weather_code: [2], temperature_2m_max: [30], temperature_2m_min: [23],
+        precipitation_probability_max: [25], wind_speed_10m_max: [14],
+      }, hourly: { time: ["2026-08-31T00:00"], temperature_2m: [24], dew_point_2m: [20], precipitation_probability: [10], precipitation: [0], weather_code: [2], wind_speed_10m: [7] } }) };
+    },
+  );
+  assert.equal(result.forecast_days, 1);
+  assert.match(result.answer, /^Tokyo, Japan:/);
+});
+
 test("news search rejects invalid input before the upstream request", async () => {
   let called = false;
   const result = await lookupNews({ q: "", max_results: "11" }, async () => { called = true; throw new Error("must not fetch"); });
@@ -175,6 +212,9 @@ test("news search normalizes the fixed Google News RSS response", async () => {
   assert.equal(result.articles.length, 2);
   assert.equal(result.articles[1].title, "Second & story");
   assert.equal(result.articles[0].description, "OpenAI shipped a major model update.");
+  assert.equal(result.headline, "OpenAI update");
+  assert.match(result.answer, /^OpenAI update/);
+  assert.equal(result.summary, result.answer);
   assert.equal(result.canonical, "openai|Example News|Sat, 16 Aug 2026 10:00:00 GMT|OpenAI update|Second Source|Sat, 16 Aug 2026 09:00:00 GMT|Second & story");
 });
 

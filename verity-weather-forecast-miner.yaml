@@ -25,6 +25,7 @@ endpoints:
       location: location
       q: location
       query: location
+      question: question
 
 input_schema:
   type: object
@@ -33,12 +34,14 @@ input_schema:
     - required: [location]
     - required: [q]
     - required: [query]
+    - required: [question]
   properties:
     latitude: { type: number, minimum: -90, maximum: 90 }
     longitude: { type: number, minimum: -180, maximum: 180 }
     location: { type: string, minLength: 1, maxLength: 100 }
     q: { type: string, minLength: 1, maxLength: 100 }
     query: { type: string, minLength: 1, maxLength: 100 }
+    question: { type: string, minLength: 1, maxLength: 200 }
     forecast_days: { type: integer, minimum: 1, maximum: 7 }
     days: { type: integer, minimum: 1, maximum: 7 }
 

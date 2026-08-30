@@ -22,16 +22,17 @@ endpoints:
       tx_hash: tx_hash
       hash: tx_hash
       txHash: tx_hash
-      query: tx_hash
+      query: query
+      question: question
 
 input_schema:
   type: object
-  required: [chain]
   anyOf:
     - required: [tx_hash]
     - required: [hash]
     - required: [txHash]
     - required: [query]
+    - required: [question]
   properties:
     chain:
       type: string
@@ -41,7 +42,8 @@ input_schema:
       pattern: "^0x[0-9a-fA-F]{64}$"
     hash: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
     txHash: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
-    query: { type: string, pattern: "^0x[0-9a-fA-F]{64}$" }
+    query: { type: string, minLength: 66, maxLength: 240 }
+    question: { type: string, minLength: 66, maxLength: 240 }
 
 output_schema:
   type: object

@@ -64,6 +64,20 @@ function normaliseChain(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
+function chainFromQuestion(value) {
+  const text = typeof value === "string" ? value.toLowerCase() : "";
+  if (/\b(?:ethereum|eth|mainnet)\b/.test(text)) return "ethereum";
+  if (/\b(?:arbitrum|arb)\b/.test(text)) return "arbitrum";
+  if (/\b(?:optimism|op mainnet)\b/.test(text)) return "optimism";
+  if (/\bpolygon\b/.test(text)) return "polygon";
+  if (/\bbase\b/.test(text)) return "base";
+  return "";
+}
+
+function hashFromQuestion(value) {
+  return typeof value === "string" ? value.match(/0x[0-9a-fA-F]{64}/)?.[0] ?? "" : "";
+}
+
 function normaliseHash(value) {
   return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
@@ -122,6 +136,23 @@ function forecastDays(value) {
   if (typeof value !== "string" || !/^\d{1,2}$/.test(value.trim())) return null;
   const days = Number(value);
   return Number.isInteger(days) && days >= 1 && days <= MAX_FORECAST_DAYS ? days : null;
+}
+
+function inferredForecastDays(value) {
+  if (typeof value !== "string") return null;
+  const explicit = value.match(/\b(?:next|for|over)?\s*([1-7])\s*days?\b/i)?.[1];
+  if (explicit) return Number(explicit);
+  if (/\b(?:week|7-day|seven days)\b/i.test(value)) return 7;
+  if (/\b(?:tomorrow|today|24 hours?)\b/i.test(value)) return 1;
+  return null;
+}
+
+function placeFromQuestion(value) {
+  if (typeof value !== "string") return null;
+  const compact = value.trim().replace(/\s+/g, " ");
+  if (!compact || compact.length > 200 || /[\u0000-\u001F\u007F]/.test(compact)) return null;
+  const match = compact.match(/\b(?:in|for|at)\s+([\p{L}][\p{L} .'-]{0,80}?)(?=\s+(?:today|tomorrow|this|next|on|over|during|for\s+\d)|[?.!,]|$)/iu);
+  return match?.[1]?.trim() || compact;
 }
 
 function newsQuery(value) {
@@ -254,7 +285,8 @@ async function weatherLocation(input, fetcher) {
   if (latitude !== null && longitude !== null) {
     return { latitude, longitude, name: null, country: null, timezone: "auto" };
   }
-  return resolveLocation(oneOf(input.location, input.q, input.query), fetcher);
+  const explicit = oneOf(input.location, input.q, input.query);
+  return resolveLocation(explicit ?? placeFromQuestion(input.question), fetcher);
 }
 
 async function fetchNews(url, fetcher = fetch) {
@@ -344,14 +376,15 @@ export async function lookupWeather(input, fetcher = fetch) {
     source: "Open-Meteo",
     confidence: 1,
     canonical,
-    answer: `${condition}; ${current.temperature_2m} C (${celsiusToFahrenheit(current.temperature_2m)} F), feels like ${current.apparent_temperature} C, humidity ${current.relative_humidity_2m}%, precipitation ${current.precipitation} mm, wind ${current.wind_speed_10m} km/h at ${current.time} UTC.`,
+    answer: `${location.name ? `${location.name}${location.country ? `, ${location.country}` : ""}: ` : `${lat}, ${lon}: `}${condition}; ${current.temperature_2m} C (${celsiusToFahrenheit(current.temperature_2m)} F), feels like ${current.apparent_temperature} C, humidity ${current.relative_humidity_2m}%, pressure ${current.pressure_msl} hPa, precipitation ${current.precipitation} mm, wind ${current.wind_speed_10m} km/h at ${current.time} UTC.`,
     summary: `Open-Meteo current conditions for ${location.name ? `${location.name}${location.country ? `, ${location.country}` : ""}` : `${lat}, ${lon}`}.`,
   };
 }
 
 export async function lookupForecast(input, fetcher = fetch) {
   const location = await weatherLocation(input, fetcher);
-  const days = forecastDays(oneOf(input.forecast_days, input.days) ?? "3");
+  const requestedDays = oneOf(input.forecast_days, input.days);
+  const days = forecastDays(requestedDays ?? String(inferredForecastDays(input.question) ?? 3));
   if (!location || days === null) {
     return {
       error: "INVALID_FORECAST_REQUEST",
@@ -421,13 +454,13 @@ export async function lookupForecast(input, fetcher = fetch) {
     source: "Open-Meteo",
     confidence: 1,
     canonical,
-    answer: `${daysPayload.map((day) => `${day.date}: ${weatherCondition(day.weather_code)}, ${day.temperature_min_c}-${day.temperature_max_c} C, precipitation up to ${day.precipitation_probability_max_percent}%, wind up to ${day.wind_speed_max_kmh} km/h`).join("; ")}\nHourly: ${hourlyPayload.map((entry) => `${entry.time} ${entry.condition}, temp ${entry.temperature_c} C, dew point ${entry.dew_point_c} C, precipitation ${entry.precipitation_probability_percent}%/${entry.precipitation_mm} mm, wind ${entry.wind_speed_kmh} km/h`).join("; ")}`,
+    answer: `${location.name ? `${location.name}${location.country ? `, ${location.country}` : ""}: ` : `${lat}, ${lon}: `}${daysPayload.map((day) => `${day.date} ${weatherCondition(day.weather_code)}, low ${day.temperature_min_c} C, high ${day.temperature_max_c} C, precipitation ${day.precipitation_probability_max_percent}%, wind ${day.wind_speed_max_kmh} km/h`).join("; ")}`,
     summary: `${days}-day daily and ${hourlyPayload.length}-point hourly Open-Meteo forecast for ${location.name ? `${location.name}${location.country ? `, ${location.country}` : ""}` : `${lat}, ${lon}`}.`,
   };
 }
 
 export async function lookupNews(input, fetcher = fetch) {
-  const queryInput = oneOf(input.q, input.query);
+  const queryInput = oneOf(input.q, input.query, input.question);
   const maxResultsInput = oneOf(input.max_results, input.max);
   const query = newsQuery(queryInput);
   const maxResults = newsResults(maxResultsInput);
@@ -474,24 +507,37 @@ export async function lookupNews(input, fetcher = fetch) {
     if (parsedUrl.protocol !== "https:" || parsedUrl.hostname !== "news.google.com" || !title || !publishedAt || !source) continue;
     articles.push({ title: title.slice(0, 300), url: parsedUrl.toString(), published_at: publishedAt, source: source.slice(0, 160), description });
   }
+  const top = articles[0] ?? null;
+  const readings = articles.map((article, index) => `${index + 1}. ${article.title} — ${article.source} (${article.published_at})`).join("; ");
+  const answer = top
+    ? `${top.title} — ${top.source} (${top.published_at}).${readings ? ` Readings: ${readings}` : ""}`
+    : `No matching current news was found for ${query}.`;
   const value = {
     query,
     effective_query: effectiveQuery,
     filters: { country: country.toUpperCase(), language: language.toLowerCase(), category, recent_days: ageDays, from, to, excluded_domains: excluded },
     articles,
-    confidence: 1,
+    headline: top?.title ?? null,
+    source: top?.source ?? null,
+    published_at: top?.published_at ?? null,
+    url: top?.url ?? null,
+    result_count: articles.length,
+    as_of: new Date().toISOString(),
+    source_feed: "Google News RSS",
+    confidence: top ? 0.96 : 0.2,
     canonical: [query.toLowerCase(), ...articles.map((article) => `${article.source}|${article.published_at}|${article.title}`)].join("|"),
-    answer: articles.map((article, index) => `${index + 1}. ${article.title} — ${article.source} (${article.published_at})${article.description ? `: ${article.description}` : ""}`).join("\n"),
-    summary: `Google News RSS returned ${articles.length} matching article${articles.length === 1 ? "" : "s"} with source and publication-time provenance.`,
+    answer,
+    summary: answer,
   };
   if (newsCache.size >= NEWS_CACHE_LIMIT) newsCache.delete(newsCache.keys().next().value);
   newsCache.set(cacheKey, { createdAt: Date.now(), value });
   return value;
 }
 
-export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput }, fetcher = fetch, urlsOverride = null) {
-  const chainName = normaliseChain(chainInput);
-  const txHash = normaliseHash(hashInput);
+export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput, hash, txHash: camelHash, query, question }, fetcher = fetch, urlsOverride = null) {
+  const naturalLanguage = oneOf(question, query);
+  const chainName = normaliseChain(chainInput) || chainFromQuestion(naturalLanguage) || "base";
+  const txHash = normaliseHash(oneOf(hashInput, hash, camelHash, hashFromQuestion(naturalLanguage)));
   const chain = CHAINS[chainName];
 
   if (!chain) {
@@ -587,7 +633,7 @@ export async function lookupTransaction({ chain: chainInput, tx_hash: hashInput 
     providers_checked: successfulProviders,
     confidence: receipt || isPending ? 1 : 0.8,
     canonical,
-    answer: `Transaction ${txHash}: ${status.replaceAll("_", " ")} ${transactionType.replaceAll("_", " ")} on ${chainName} from ${from} to ${to}, value ${valueEth ?? valueWei} ETH, block ${block}${methodSelector ? `, selector ${methodSelector}` : ""}${feeWei ? `, fee ${units(feeWei)} ETH (${feeWei} wei)` : ""}.`,
+    answer: `${status.replaceAll("_", " ")}; ${valueEth ?? valueWei} ETH transferred on ${chainName} in transaction ${txHash}, block ${block}, from ${from} to ${to}${methodSelector ? `, method selector ${methodSelector}` : ""}${feeWei ? `, transaction fee ${units(feeWei)} ETH (${feeWei} wei)` : ""}.`,
     summary: `Verified using an archive-capable ${chainName} RPC with fallback support.`,
   };
 }
@@ -614,6 +660,7 @@ export function createServer() {
           latitude: url.searchParams.get("latitude"),
           longitude: url.searchParams.get("longitude"),
           location: oneOf(url.searchParams.get("location"), url.searchParams.get("q"), url.searchParams.get("query")),
+          question: url.searchParams.get("question"),
         });
         return json(response, result.error ? 400 : 200, result);
       } catch (error) {
@@ -628,6 +675,7 @@ export function createServer() {
           longitude: url.searchParams.get("longitude"),
           location: oneOf(url.searchParams.get("location"), url.searchParams.get("q"), url.searchParams.get("query")),
           forecast_days: oneOf(url.searchParams.get("forecast_days"), url.searchParams.get("days")),
+          question: url.searchParams.get("question"),
         });
         return json(response, result.error ? 400 : 200, result);
       } catch (error) {
@@ -639,6 +687,7 @@ export function createServer() {
       try {
         const result = await lookupNews({
           q: oneOf(url.searchParams.get("q"), url.searchParams.get("query")),
+          question: url.searchParams.get("question"),
           max_results: oneOf(url.searchParams.get("max_results"), url.searchParams.get("max")),
           recent_days: url.searchParams.get("recent_days"),
           exclude_domains: url.searchParams.get("exclude_domains"),
@@ -659,7 +708,11 @@ export function createServer() {
     try {
       const result = await lookupTransaction({
         chain: url.searchParams.get("chain"),
-        tx_hash: oneOf(url.searchParams.get("tx_hash"), url.searchParams.get("hash"), url.searchParams.get("txHash"), url.searchParams.get("query")),
+        tx_hash: url.searchParams.get("tx_hash"),
+        hash: url.searchParams.get("hash"),
+        txHash: url.searchParams.get("txHash"),
+        query: url.searchParams.get("query"),
+        question: url.searchParams.get("question"),
       });
       return json(response, result.error ? 400 : 200, result);
     } catch (error) {

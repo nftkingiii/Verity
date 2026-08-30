@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
-const release = path.join(root, "artifacts", "v0.3.1");
+const release = process.env.SCORER_DIR ? path.resolve(process.env.SCORER_DIR) : path.join(root, "artifacts", "v0.3.1");
 const cases = [
   ["verity-onchain-scorer.wasm", "tx", "transaction confirmed success value 2", "transaction confirmed success value 2", "transaction reverted value 99"],
   ["verity-weather-check-scorer.wasm", "weather", "Lagos 27 C rain humidity 80", "Lagos 27 C rain humidity 80", "Lagos 42 C clear humidity 10"],

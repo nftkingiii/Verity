@@ -11,7 +11,8 @@
     "build:calibrated-scorers": "node scripts/build-calibrated-scorers.mjs",
     "test:calibrated-scorers": "node scripts/test-calibrated-scorers.mjs",
     "build:fast-scorers": "node scripts/build-fast-scorers.mjs",
-    "test:fast-scorers": "node scripts/test-fast-scorers.mjs"
+    "test:fast-scorers": "node scripts/test-fast-scorers.mjs",
+    "variant:scorers": "node scripts/variant-scorers.mjs"
   },
   "engines": {
     "node": ">=20"

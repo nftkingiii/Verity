@@ -1,0 +1,126 @@
+{
+  "verity-onchain-scorer.wasm": {
+    "bytes": 16144,
+    "sha256": "72838512b28774943e6cf2e98a3aad6d41ceccca386caa9a33b5d329755f628e",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "verity-weather-check-scorer.wasm": {
+    "bytes": 38057,
+    "sha256": "ac79cd5b42f1de47eb5ba86179dd87ed1e36bd9ada78ba2829890f237e44c35c",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "verity-weather-forecast-scorer.wasm": {
+    "bytes": 39257,
+    "sha256": "6a8704c47e6ff0e6f1bf9faa734eea60a8595977996c73f1e0348241892b3216",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "verity-news-search-scorer.wasm": {
+    "bytes": 13775,
+    "sha256": "16c360fba107b814be3147c971bc59d8875ecaf763ee4ba0726f51a51a96b619",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  }
+}

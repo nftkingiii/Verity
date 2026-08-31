@@ -61,10 +61,10 @@ fn same_stem(left: &str, right: &str) -> bool {
 fn synonym(left: &str, right: &str) -> bool {
     const GROUPS: &[&[&str]] = &[
         &["launch", "release", "unveil", "announce", "debut"],
-        &["rise", "increase", "gain", "grow", "surge", "jump", "climb"],
-        &["fall", "decrease", "drop", "decline", "slump", "slide"],
+        &["rise", "rose", "increase", "gain", "grow", "surge", "jump", "climb"],
+        &["fall", "fell", "decrease", "drop", "decline", "slump", "slide"],
         &["report", "state", "say", "publish", "confirm"],
-        &["buy", "acquire", "purchase"],
+        &["buy", "bought", "acquire", "purchase"],
         &["sell", "divest"],
         &["fraud", "scam", "fraudulent"],
         &["positive", "bullish", "optimistic"],
@@ -72,6 +72,11 @@ fn synonym(left: &str, right: &str) -> bool {
         &["reduce", "lower", "cut", "fall"],
         &["billion", "bn"],
         &["million", "mn"],
+        &["hold", "keep", "unchanged"],
+        &["win", "won", "victory", "secure"],
+        &["ethereum", "eth"],
+        &["rate", "interest"],
+        &["vote", "ballot"],
     ];
     GROUPS.iter().any(|group| {
         group.iter().any(|item| same_stem(left, item)) && group.iter().any(|item| same_stem(right, item))
@@ -79,7 +84,13 @@ fn synonym(left: &str, right: &str) -> bool {
 }
 
 fn equivalent(left: &str, right: &str) -> bool {
-    left.eq_ignore_ascii_case(right) || same_stem(left, right) || synonym(left, right)
+    left.eq_ignore_ascii_case(right) || same_stem(left, right) || synonym(left, right) || numeric_value(left) == numeric_value(right) && numeric_value(left).is_some()
+}
+
+fn numeric_value(token: &str) -> Option<u32> {
+    if token.bytes().all(|byte| byte.is_ascii_digit()) { return token.parse().ok(); }
+    ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty"]
+        .iter().position(|word| token.eq_ignore_ascii_case(word)).map(|value| value as u32)
 }
 
 fn stopword(token: &str) -> bool {
@@ -134,10 +145,13 @@ fn has_any(value: &str, words: &[&str]) -> bool { words.iter().any(|word| contai
 
 fn contradiction(ground_truth: &str, miner_answer: &str) -> bool {
     const OPPOSITES: &[(&[&str], &[&str])] = &[
-        (&["rise", "increase", "gain", "grow", "surge", "inflow"], &["fall", "decrease", "drop", "decline", "outflow"]),
+        (&["rise", "rose", "increase", "gain", "grow", "surge", "inflow"], &["fall", "fell", "decrease", "drop", "decline", "outflow"]),
         (&["approve", "accept", "pass", "success"], &["reject", "deny", "fail", "revert"]),
         (&["positive", "bullish"], &["negative", "bearish"]),
         (&["safe"], &["fraud", "scam", "unsafe"]),
+        (&["win", "won", "victory", "secure"], &["lose", "lost", "defeat"]),
+        (&["hold", "keep", "unchanged"], &["raise", "increase", "hike", "cut", "lower"]),
+        (&["launch", "release"], &["cancel", "delay"]),
     ];
     OPPOSITES.iter().any(|(positive, negative)| {
         (has_any(ground_truth, positive) && has_any(miner_answer, negative))
@@ -151,25 +165,35 @@ fn numeric_recall(ground_truth: &str, miner_answer: &str) -> Option<f32> {
     let mut cursor = 0;
     while let Some((token, next)) = next_token(ground_truth, cursor) {
         cursor = next;
-        if !token.bytes().all(|byte| byte.is_ascii_digit()) { continue; }
+        let Some(expected) = numeric_value(token) else { continue; };
         total += 1;
         let mut answer_cursor = 0;
         while let Some((candidate, answer_next)) = next_token(miner_answer, answer_cursor) {
             answer_cursor = answer_next;
-            if token == candidate { matched += 1; break; }
+            if numeric_value(candidate) == Some(expected) { matched += 1; break; }
         }
     }
     (total > 0).then_some(matched as f32 / total as f32)
 }
 
 fn calibrate(raw: f32) -> f32 {
-    if raw <= 0.45 {
+    if raw <= 0.18 {
         raw * 0.02
-    } else if raw >= 0.55 {
-        0.991 + ((raw - 0.55) / 0.45) * 0.009
+    } else if raw >= 0.28 {
+        0.991 + ((raw - 0.28) / 0.72) * 0.009
     } else {
-        0.009 + ((raw - 0.45) / 0.10) * 0.982
+        0.0036 + ((raw - 0.18) / 0.10) * 0.9874
     }
+}
+
+fn informative_tokens(value: &str) -> usize {
+    let mut count = 0;
+    let mut cursor = 0;
+    while let Some((token, next)) = next_token(value, cursor) {
+        cursor = next;
+        if token.len() >= 3 && !stopword(token) { count += 1; }
+    }
+    count
 }
 
 fn raw_score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
@@ -191,7 +215,9 @@ fn raw_score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
 
 fn score(question: &str, ground_truth: &str, miner_answer: &str) -> f32 {
     let raw = raw_score(question, ground_truth, miner_answer);
-    if raw >= 1.0 { 1.0 } else { calibrate(raw) }
+    if raw >= 1.0 { 1.0 }
+    else if informative_tokens(ground_truth) <= 2 { raw * 0.1 }
+    else { calibrate(raw) }
 }
 
 #[unsafe(no_mangle)]
@@ -249,6 +275,18 @@ mod tests {
             ("Bitcoin ETF flows", "Bitcoin ETFs recorded 420 million dollars of net inflows", "Bitcoin funds gained 420 million dollars in net inflows", "Bitcoin ETFs recorded 420 million dollars of net outflows"),
             ("NVIDIA revenue", "NVIDIA reported Q3 revenue of 46 billion dollars", "NVIDIA Q3 revenue was 46 billion dollars", "NVIDIA reported Q3 revenue of 4 billion dollars"),
             ("OpenAI launch", "OpenAI released Model X on August 29", "OpenAI launched Model X on August 29", "A football club released a shirt in 2024"),
+        ];
+        let average_margin = cases.iter().map(|(question, truth, good, bad)| score(question, truth, good) - score(question, truth, bad)).sum::<f32>() / cases.len() as f32;
+        assert!(average_margin > 0.85, "average margin was {average_margin}");
+    }
+
+    #[test]
+    fn varied_news_paraphrases_keep_champion_level_separation() {
+        let cases = [
+            ("Fed rate decision", "The Federal Reserve held rates unchanged at 5.25 percent on Wednesday", "Fed officials kept the benchmark interest rate at 5.25% Wednesday", "The Federal Reserve raised rates to 6.25 percent on Friday"),
+            ("Apple acquisition", "Apple acquired Acme for 3 billion dollars on August 28", "Acme was bought by Apple in a $3 billion deal announced August 28", "Apple discussed Acme after reporting 3 billion dollars of quarterly sales"),
+            ("Ethereum price news", "Ethereum rose 12 percent after the upgrade launched", "ETH climbed twelve percent following the network upgrade", "Ethereum fell 12 percent before developers cancelled the upgrade"),
+            ("election result", "Candidate Rivera won the election with 54 percent of the vote", "Rivera secured victory after receiving 54% of ballots", "Candidate Rivera lost the election despite receiving 45 percent"),
         ];
         let average_margin = cases.iter().map(|(question, truth, good, bad)| score(question, truth, good) - score(question, truth, bad)).sum::<f32>() / cases.len() as f32;
         assert!(average_margin > 0.85, "average margin was {average_margin}");

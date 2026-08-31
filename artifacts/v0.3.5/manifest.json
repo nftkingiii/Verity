@@ -1,0 +1,130 @@
+{
+  "ONCHAIN_TX_LOOKUP": {
+    "file": "verity-onchain-scorer.wasm",
+    "bytes": 16093,
+    "sha256": "a089d0a09df632c81a7cc5014f194a47b539eaaa075c48ef8af26743e707aad2",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "WEATHER_CHECK": {
+    "file": "verity-weather-check-scorer.wasm",
+    "bytes": 38000,
+    "sha256": "265ddde57e3c4e555c429325a3dd27da1d40931f041315a640f4a92cbe44df51",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "WEATHER_FORECAST": {
+    "file": "verity-weather-forecast-scorer.wasm",
+    "bytes": 39197,
+    "sha256": "f003a53c679f9d6135dd0344a584cda1dc91668f099762e089d32a2f14c3c014",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  },
+  "NEWS_SEARCH": {
+    "file": "verity-news-search-scorer.wasm",
+    "bytes": 21138,
+    "sha256": "d00b64413c8e44895dc9b79d3c61b4d0d3101aa56c018f339459a4b6ad35d916",
+    "imports": [],
+    "exports": [
+      {
+        "name": "memory",
+        "kind": "memory"
+      },
+      {
+        "name": "alloc",
+        "kind": "function"
+      },
+      {
+        "name": "dealloc",
+        "kind": "function"
+      },
+      {
+        "name": "rank_answer",
+        "kind": "function"
+      },
+      {
+        "name": "__data_end",
+        "kind": "global"
+      },
+      {
+        "name": "__heap_base",
+        "kind": "global"
+      }
+    ]
+  }
+}

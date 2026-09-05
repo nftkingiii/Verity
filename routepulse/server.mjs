@@ -32,7 +32,7 @@ function allowed(req) {
   const item = limits.get(key);
   if (!item || now - item.started > 600_000) { limits.set(key, { started: now, count: 1 }); return true; }
   item.count += 1;
-  return item.count <= 12;
+  return item.count <= 60;
 }
 
 const server = http.createServer(async (req, res) => {

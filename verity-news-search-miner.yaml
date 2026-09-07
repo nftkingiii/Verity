@@ -92,3 +92,35 @@ semantics:
 
 docs:
   repository: https://github.com/nftkingiii/Verity
+
+on_chain:
+  description: >-
+    The answer and how many articles stood behind it. The article list is an
+    array, so it is left out of the on-chain shape rather than flattened.
+  transform: direct
+  min_price_usdc: 0.01
+  fields:
+    strings:
+      - index: 0
+        name: answer
+        description: One-line answer to the question that was asked.
+        source_path: answer
+      - index: 1
+        name: summary
+        description: The finding in plain language.
+        source_path: summary
+    integers:
+      - index: 0
+        name: confidence_x10000
+        description: Confidence from 0 to 1, multiplied by 10000.
+        source_path: confidence
+        multiplier: 10000
+      - index: 1
+        name: result_count
+        description: Number of articles the answer was drawn from.
+        source_path: result_count
+  request:
+    - endpoint: news
+      method: GET
+      query_params:
+        q: { source: strings.0 }

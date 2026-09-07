@@ -86,3 +86,37 @@ semantics:
 
 docs:
   repository: https://github.com/nftkingiii/Verity
+
+on_chain:
+  description: >-
+    The forecast answer and how confident the miner is in it. The per-day and
+    per-hour series are arrays, so they are left out of the on-chain shape
+    rather than flattened into it.
+  transform: direct
+  min_price_usdc: 0.01
+  fields:
+    strings:
+      - index: 0
+        name: answer
+        description: One-line answer to the question that was asked.
+        source_path: answer
+      - index: 1
+        name: summary
+        description: The forecast in plain language.
+        source_path: summary
+    integers:
+      - index: 0
+        name: confidence_x10000
+        description: Confidence from 0 to 1, multiplied by 10000.
+        source_path: confidence
+        multiplier: 10000
+      - index: 1
+        name: forecast_days
+        description: How many days the answer covers.
+        source_path: forecast_days
+  request:
+    - endpoint: forecast
+      method: GET
+      query_params:
+        location:      { source: strings.0 }
+        forecast_days: { source: numbers.0 }

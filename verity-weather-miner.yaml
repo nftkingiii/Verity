@@ -73,3 +73,40 @@ semantics:
 
 docs:
   repository: https://github.com/nftkingiii/Verity
+
+on_chain:
+  description: >-
+    Observed conditions for a point, in the shape a contract can settle on.
+  transform: direct
+  min_price_usdc: 0.01
+  fields:
+    strings:
+      - index: 0
+        name: condition
+        description: The observed condition in plain words.
+        source_path: condition
+      - index: 1
+        name: answer
+        description: One-line answer to the question that was asked.
+        source_path: answer
+    integers:
+      - index: 0
+        name: temperature_c_x100
+        description: Air temperature in degrees Celsius, multiplied by 100.
+        source_path: temperature_c
+        multiplier: 100
+      - index: 1
+        name: wind_speed_kmh_x100
+        description: Wind speed in km/h, multiplied by 100.
+        source_path: wind_speed_kmh
+        multiplier: 100
+      - index: 2
+        name: precipitation_mm_x100
+        description: Precipitation in mm, multiplied by 100.
+        source_path: precipitation_mm
+        multiplier: 100
+  request:
+    - endpoint: weather
+      method: GET
+      query_params:
+        location: { source: strings.0 }

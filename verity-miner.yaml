@@ -86,3 +86,40 @@ limitations:
 
 docs:
   repository: https://github.com/nftkingiii/Verity
+
+on_chain:
+  description: >-
+    The transaction's execution status and value, in the shape a contract can
+    settle on.
+  transform: direct
+  min_price_usdc: 0.01
+  fields:
+    strings:
+      - index: 0
+        name: status
+        description: Execution status of the transaction.
+        source_path: status
+      - index: 1
+        name: answer
+        description: One-line answer to the question that was asked.
+        source_path: answer
+    integers:
+      - index: 0
+        name: block_number
+        description: Block the transaction was included in.
+        source_path: block_number
+      - index: 1
+        name: gas_used
+        description: Gas units consumed.
+        source_path: gas_used
+      - index: 2
+        name: confidence_x10000
+        description: Confidence from 0 to 1, multiplied by 10000.
+        source_path: confidence
+        multiplier: 10000
+  request:
+    - endpoint: lookup
+      method: GET
+      query_params:
+        tx_hash: { source: strings.0 }
+        chain:   { source: strings.1 }
